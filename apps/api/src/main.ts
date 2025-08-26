@@ -8,31 +8,41 @@ import compression from 'compression';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
 
+function parseAllowedOrigins(): string[] {
+  // Support comma-separated CORS origins via CORS_ORIGIN or single FRONTEND_URL
+  const raw = process.env.CORS_ORIGIN ?? process.env.FRONTEND_URL ?? '';
+  return raw
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
+  const isProd = process.env.NODE_ENV === 'production';
 
   const app = await NestFactory.create(AppModule, {
-    // buffer logs to avoid noisy output in dev if you have interceptors
     // logger: ['error', 'warn', 'log'],
   });
 
-  // If you're behind a proxy (Render, Nginx, Cloudflare, etc.)
-  // this is required so `secure` cookies and client IP work properly.
-  // (Express only)
+  // Trust proxy for X-Forwarded-* headers (Render/DO/Cloudflare, etc.)
   // @ts-ignore
   app.set('trust proxy', 1);
 
-  // Security headers (relaxed CSP in dev)
+  // Security headers (relax CSP in dev)
   app.use(
     helmet({
-      contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+      contentSecurityPolicy: isProd ? undefined : false,
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      referrerPolicy: { policy: 'no-referrer' },
+      frameguard: { action: 'sameorigin' },
     }),
   );
 
-  // Body limits (adjust if you upload large files)
-  app.use(json({ limit: '5mb' }));
-  app.use(urlencoded({ extended: true, limit: '5mb' }));
+  // Configurable body limits
+  const bodyLimit = process.env.UPLOAD_LIMIT ?? '5mb';
+  app.use(json({ limit: bodyLimit }));
+  app.use(urlencoded({ extended: true, limit: bodyLimit }));
 
   // Gzip
   app.use(compression());
@@ -40,24 +50,26 @@ async function bootstrap() {
   // Cookies
   app.use(cookieParser());
 
-  // --- CORS (critical for cookies + Next.js) ---
-  // Allow a single FRONTEND_URL or a small allowlist.
-  const allowlist = [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-  ].filter(Boolean);
+  // ---- CORS ----
+  const allowlist = parseAllowedOrigins();
+  if (allowlist.length) {
+    logger.log(`CORS allowlist: ${allowlist.join(', ')}`);
+  } else {
+    logger.warn('CORS allowlist is empty; allowing no-origin requests only.');
+  }
 
   app.enableCors({
     origin: (origin, callback) => {
-      // allow mobile apps / curl / SSR with no origin
+      // Allow server-to-server/mobile/curl/SSR (no Origin header)
       if (!origin) return callback(null, true);
+      if (!allowlist.length) return callback(null, false);
       if (allowlist.includes(origin)) return callback(null, true);
       return callback(new Error(`CORS: Origin ${origin} not allowed`), false);
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+    exposedHeaders: ['Content-Disposition'],
   });
 
   // Global input validation
@@ -70,10 +82,10 @@ async function bootstrap() {
     }),
   );
 
-  // (Optional) If you want your API under /api
+  // Optional: mount API under /api
   // app.setGlobalPrefix('api', { exclude: [''] });
 
-  // Swagger (Bearer + Cookie auth)
+  // Swagger (always on; flip to isProd check if you want to hide in prod)
   const swaggerConfig = new DocumentBuilder()
     .setTitle('PaceLab LMS API')
     .setDescription('API documentation for the LMS backend')
@@ -82,12 +94,8 @@ async function bootstrap() {
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT', in: 'header' },
       'bearer',
     )
-    .addCookieAuth('token', {
-      type: 'apiKey',
-      in: 'cookie',
-    })
+    .addCookieAuth('token', { type: 'apiKey', in: 'cookie' })
     .build();
-
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
 
@@ -100,5 +108,6 @@ async function bootstrap() {
   logger.log(`🚀 LMS Backend running on http://localhost:${port}`);
   logger.log(`📚 Swagger Docs at http://localhost:${port}/api/docs`);
 }
+
 bootstrap();
 
