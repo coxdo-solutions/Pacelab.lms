@@ -13,6 +13,7 @@
     "start:dev": "nest start --watch",
     "start:prod": "node -r tsconfig-paths/register dist/src/main.js",
     "prestart:prod": "prisma migrate deploy && prisma generate",
+    "postbuild": "ls -R dist || true",
 
  
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
