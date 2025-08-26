@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Frontend - Next.js Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://api:3001
+      - NEXT_PUBLIC_BRAND_NAME=PaceLab LMS
+      - NEXT_PUBLIC_BRAND_OWNER=Coxdo Solutions
+      - NEXT_PUBLIC_PRIMARY_COLOR=#FFA700
+    depends_on:
+      - api
+    networks:
+      - pacelab-network
+
+  # Backend API - NestJS Application
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/pacelab_lms
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - JWT_EXPIRES=15m
+      - REFRESH_EXPIRES=7d
+      - VIDEO_PROVIDER=cloudflare
+      - CLOUDFLARE_STREAM_TOKEN=${CLOUDFLARE_STREAM_TOKEN}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - pacelab-network
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=pacelab_lms
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./apps/api/prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - pacelab-network
+
+  # Redis for caching and real-time features
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - pacelab-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - frontend
+      - api
+    networks:
+      - pacelab-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  pacelab-network:
+    driver: bridge
