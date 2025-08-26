@@ -1,14 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import axios, { AxiosResponse } from 'axios';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
 import { google } from 'googleapis';
 import * as fs from 'fs';
 import { PassThrough } from 'stream';
-
-// Use Express namespace for Multer file type
-import type { Express } from 'express';
-type MulterFile = Express.Multer.File;
 
 export interface YouTubeVideo {
   id: string;
@@ -30,7 +23,7 @@ interface YouTubeVideoItem {
   snippet: {
     title: string;
     description: string;
-    thumbnails: { high: { url: string } };
+    thumbnails: { high?: { url?: string } };
     publishedAt: string;
     channelTitle: string;
   };
@@ -69,17 +62,37 @@ export class YoutubeService {
     return google.youtube({ version: 'v3', auth: this.oauth2 });
   }
 
+  // ---------------------------
+  // Helpers
+  // ---------------------------
+
+  private async getJson<T>(path: string, params: Record<string, any>): Promise<T> {
+    const url = new URL(path, this.baseUrl);
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
+    });
+    const res = await fetch(url.toString());
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`YouTube API ${res.status} ${res.statusText}: ${text}`);
+    }
+    return (await res.json()) as T;
+  }
+
   // =======================
   // Read-only: Search / Details / Playlists (API key)
   // =======================
 
   async searchVideos(query: string, maxResults = 10): Promise<YouTubeVideo[]> {
     try {
-      const { data }: AxiosResponse<YouTubeSearchResponse> = await axios.get(
-        `${this.baseUrl}/search`,
-        { params: { key: this.apiKey, q: query, part: 'snippet', maxResults, type: 'video' } },
-      );
-      const ids = data.items.map((i) => i.id.videoId).join(',');
+      const data = await this.getJson<YouTubeSearchResponse>('/search', {
+        key: this.apiKey,
+        q: query,
+        part: 'snippet',
+        maxResults,
+        type: 'video',
+      });
+      const ids = (data.items ?? []).map((i) => i.id.videoId).filter(Boolean).join(',');
       if (!ids) return [];
       return this.getVideosDetails(ids);
     } catch (err) {
@@ -90,11 +103,12 @@ export class YoutubeService {
 
   async getVideosDetails(ids: string): Promise<YouTubeVideo[]> {
     try {
-      const { data }: AxiosResponse<YouTubeVideosResponse> = await axios.get(
-        `${this.baseUrl}/videos`,
-        { params: { key: this.apiKey, id: ids, part: 'snippet,contentDetails,statistics' } },
-      );
-      return data.items.map((item) => ({
+      const data = await this.getJson<YouTubeVideosResponse>('/videos', {
+        key: this.apiKey,
+        id: ids,
+        part: 'snippet,contentDetails,statistics',
+      });
+      return (data.items ?? []).map((item) => ({
         id: item.id,
         title: item.snippet.title,
         description: item.snippet.description,
@@ -112,11 +126,16 @@ export class YoutubeService {
 
   async getPlaylistVideos(playlistId: string, maxResults = 10): Promise<YouTubeVideo[]> {
     try {
-      const { data }: AxiosResponse<YouTubePlaylistResponse> = await axios.get(
-        `${this.baseUrl}/playlistItems`,
-        { params: { key: this.apiKey, playlistId, part: 'snippet', maxResults } },
-      );
-      const ids = data.items.map((i) => i.snippet.resourceId.videoId).join(',');
+      const data = await this.getJson<YouTubePlaylistResponse>('/playlistItems', {
+        key: this.apiKey,
+        playlistId,
+        part: 'snippet',
+        maxResults,
+      });
+      const ids = (data.items ?? [])
+        .map((i) => i.snippet?.resourceId?.videoId)
+        .filter(Boolean)
+        .join(',');
       if (!ids) return [];
       return this.getVideosDetails(ids);
     } catch (err) {
@@ -187,7 +206,6 @@ export class YoutubeService {
     const youtube = this.yt();
 
     const pass = new PassThrough();
-
     const done = youtube.videos.insert({
       part: ['snippet', 'status'],
       requestBody: {
@@ -230,30 +248,5 @@ export class YoutubeService {
     await youtube.videos.delete({ id: videoId });
     return { ok: true };
   }
-
-  // =======================
-  // Multer (disk) — optional fallback
-  // =======================
-
-  getMulterConfig() {
-    return {
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (
-          _req: any,
-          file: MulterFile,
-          cb: (error: Error | null, filename: string) => void,
-        ) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-        },
-      }),
-      limits: { fileSize: 10 * 1024 * 1024 * 1024 }, // 10 GB
-      fileFilter: (_req: any, file: MulterFile, cb: (error: Error | null, acceptFile: boolean) => void) => {
-        if (!file.mimetype.startsWith('video/')) return cb(new Error('Only video files are allowed!'), false);
-        cb(null, true);
-      },
-    };
-  }
 }
+
