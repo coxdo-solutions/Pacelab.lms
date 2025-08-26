@@ -2,11 +2,13 @@
   "name": "pacelab-lms",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
+   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p $PORT",
     "lint": "next lint",
+
+    // (keep the rest as-is)
     "start:dev": "nest start --watch",
     "clean": "rm -rf .next node_modules package-lock.json yarn.lock pnpm-lock.yaml",
     "clean-cache": "rm -rf .next/cache",
@@ -123,3 +125,4 @@
     "typescript": "^5.9.2"
   }
 }
+
