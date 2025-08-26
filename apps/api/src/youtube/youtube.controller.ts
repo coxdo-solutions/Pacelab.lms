@@ -7,14 +7,10 @@ import {
   Param,
   Post,
   Query,
-  UploadedFile,
-  UseInterceptors,
   Req,
   Res,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { YoutubeService } from './youtube.service';
-import { youtubeMulterOptions } from './youtube.multer';
 import { Request, Response } from 'express';
 import Busboy from 'busboy';
 
@@ -24,6 +20,9 @@ function getErrorMessage(e: unknown): string {
   if (typeof e === 'string') return e;
   try { return JSON.stringify(e); } catch { return String(e); }
 }
+
+type Privacy = 'public' | 'unlisted' | 'private';
+const PRIVACY_VALUES: Privacy[] = ['public', 'unlisted', 'private'];
 
 @Controller('youtube')
 export class YoutubeController {
@@ -50,27 +49,33 @@ export class YoutubeController {
     return this.youtubeService.getPlaylistVideos(id, Number(maxResults));
   }
 
-  // ✅ (A) Direct stream upload (no disk)
-  @Post('upload/stream')
+  // ✅ (Stream upload via Busboy only, no disk, no Multer)
+  @Post('upload')
   async uploadStream(@Req() req: Request, @Res() res: Response) {
     const bb = Busboy({ headers: req.headers });
     let title = 'Lesson Upload';
     let description = '';
-    let privacyStatus: 'public' | 'unlisted' | 'private' = 'unlisted';
+    let privacyStatus: Privacy = 'unlisted';
     let fileFound = false;
 
     const done = new Promise<void>((resolve, reject) => {
       bb.on('field', (name, val) => {
         if (name === 'title') title = val;
         else if (name === 'description') description = val;
-        else if (name === 'privacyStatus' && ['public', 'unlisted', 'private'].includes(val))
-          privacyStatus = val as any;
+        else if (name === 'privacyStatus' && PRIVACY_VALUES.includes(val as Privacy)) {
+          privacyStatus = val as Privacy;
+        }
       });
 
       bb.on('file', (_name, fileStream) => {
         fileFound = true;
-        const { stream, done } = this.youtubeService.createUploadStream({ title, description, privacyStatus });
+        const { stream, done } = this.youtubeService.createUploadStream({
+          title,
+          description,
+          privacyStatus,
+        });
         fileStream.pipe(stream);
+
         done
           .then(({ data }) => {
             res.json({
@@ -79,7 +84,7 @@ export class YoutubeController {
               embedUrl: `https://www.youtube.com/embed/${data.id}`,
               title: data.snippet?.title ?? title,
               description: data.snippet?.description ?? description,
-              privacyStatus: data.status?.privacyStatus ?? privacyStatus,
+              privacyStatus: (data.status?.privacyStatus as Privacy) ?? privacyStatus,
             });
             resolve();
           })
@@ -96,7 +101,9 @@ export class YoutubeController {
 
       bb.on('close', () => {
         if (!fileFound) {
-          if (!res.headersSent) res.status(400).json({ message: 'No video file found in form-data' });
+          if (!res.headersSent) {
+            res.status(400).json({ message: 'No video file found in form-data' });
+          }
           reject(new BadRequestException('No video file found'));
         }
       });
@@ -114,24 +121,6 @@ export class YoutubeController {
 
     req.pipe(bb);
     return done;
-  }
-
-  // ✅ (B) Disk upload → YouTube (fallback)
-  @Post('upload')
-  @UseInterceptors(FileInterceptor('video', youtubeMulterOptions))
-  async uploadDisk(
-    @UploadedFile() file: Express.Multer.File,
-    @Body('title') title?: string,
-    @Body('description') description?: string,
-    @Body('privacyStatus') privacyStatus?: 'public' | 'unlisted' | 'private',
-  ) {
-    if (!file) throw new BadRequestException('No video file provided (field name: "video")');
-    return this.youtubeService.uploadVideo({
-      path: file.path,
-      title,
-      description,
-      privacyStatus,
-    });
   }
 
   // 🟢 Check processing/embeddable status
