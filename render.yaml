@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: pacelab-web
+    env: node
+    buildCommand: cd web && npm install && npm run build
+    startCommand: cd web && npm run start
+    branch: main
+    autoDeploy: true
+
+  - type: web
+    name: pacelab-api
+    env: node
+    buildCommand: cd api && npm install && npm run build
+    startCommand: cd api && npm run start:prod
+    branch: main
+    autoDeploy: true

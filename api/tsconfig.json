@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "ES2020",
+    "lib": ["ES2020"],
+
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+
+    "outDir": "./dist",
+    "incremental": true,
+
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "useUnknownInCatchVariables": false,
+
+    "skipLibCheck": true,
+
+    "typeRoots": ["./src/types", "./node_modules/@types"],
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "types": ["node"], 
+
+    "sourceMap": true
+  },
+  "include": ["src/**/*.ts", "scripts/**/*.ts", "prisma.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}
