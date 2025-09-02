@@ -60,7 +60,7 @@ export function AuthProvider({ children, fetchUserOptions }: ProviderProps) {
   }, [endpoint, tokenStorageKey]);
 
   const login = async (email: string, password: string) => {
-    const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+    const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://4e11461f9308.ngrok-free.app';
     const res = await fetch(`${API}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -103,4 +103,5 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
   return ctx;
 }
+
 
