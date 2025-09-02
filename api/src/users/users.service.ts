@@ -100,7 +100,7 @@ export class UsersService {
       where: { id },
       data: {
         ...rest,
-        ...(status && { status: status as UserStatus }), // 👈 enforce enum
+        ...(status && { status: status as UserStatus }), //  enforce enum
         ...(hashedPassword && { password: hashedPassword }),
         ...(Array.isArray(assignedCourseIds)
           ? {
@@ -129,7 +129,7 @@ export class UsersService {
 
     return this.prisma.user.update({
       where: { id },
-      data: { status: status as UserStatus }, // 👈 cast to Prisma enum
+      data: { status: status as UserStatus }, //  cast to Prisma enum
       select: {
         id: true,
         name: true,
@@ -199,3 +199,4 @@ export class UsersService {
     });
   }
 }
+
