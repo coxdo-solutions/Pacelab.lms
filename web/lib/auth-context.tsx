@@ -84,7 +84,7 @@ export function AuthProvider({ children, fetchUserOptions }: ProviderProps) {
   };
 
   const logout = async () => {
-    const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+    const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://lmspacelab-6a1c1023fc50.herokuapp.com';
     try { await fetch(`${API}/auth/logout`, { method: 'POST' }); } catch {}
     localStorage.removeItem(tokenStorageKey);
     setUser(null);
@@ -103,6 +103,7 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
   return ctx;
 }
+
 
 
 
