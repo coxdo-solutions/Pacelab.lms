@@ -4,7 +4,6 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateModuleDto } from './dto/create-module.dto';
 import { CreateLessonDto } from './dto/create-lesson.dto';
-import { Course, Prisma } from '@prisma/client';
 
 @Injectable()
 export class CoursesService {
@@ -41,7 +40,7 @@ export class CoursesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return rows.map((c: Course & { _count: { modules: number; enrollments: number } }) => ({
+    return rows.map((c) => ({
       id: c.id,
       title: c.title,
       description: c.description ?? '',
@@ -107,9 +106,9 @@ export class CoursesService {
   async updateStatus(_id: string, _isActive: boolean) {
     throw new BadRequestException(
       'Course status is not persisted because the "isActive" column does not exist. ' +
-      'Either remove the toggle in the admin UI or add to Prisma:\n\n' +
-      'model Course { ... isActive Boolean @default(true) }\n\n' +
-      'Then run: npx prisma db push',
+        'Either remove the toggle in the admin UI or add to Prisma:\n\n' +
+        'model Course { ... isActive Boolean @default(true) }\n\n' +
+        'Then run: npx prisma db push',
     );
   }
 
