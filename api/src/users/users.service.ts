@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { UserStatus } from '@prisma/client'; // import Prisma enum
 
 @Injectable()
 export class UsersService {
@@ -92,13 +93,14 @@ export class UsersService {
     const exists = await this.prisma.user.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException(`User with ID ${id} not found`);
 
-    const { password: newPassword, assignedCourseIds, ...rest } = updateUserDto;
+    const { password: newPassword, assignedCourseIds, status, ...rest } = updateUserDto;
     const hashedPassword = newPassword ? await bcrypt.hash(newPassword, 10) : undefined;
 
     return this.prisma.user.update({
       where: { id },
       data: {
         ...rest,
+        ...(status && { status: status as UserStatus }), // 👈 enforce enum
         ...(hashedPassword && { password: hashedPassword }),
         ...(Array.isArray(assignedCourseIds)
           ? {
@@ -127,7 +129,7 @@ export class UsersService {
 
     return this.prisma.user.update({
       where: { id },
-      data: { status },
+      data: { status: status as UserStatus }, // 👈 cast to Prisma enum
       select: {
         id: true,
         name: true,
