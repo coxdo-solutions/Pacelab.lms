@@ -7,23 +7,10 @@
     "api"
   ],
   "scripts": {
-    "dev:web": "npm --workspace web run dev",
     "dev:api": "npm --workspace api run start:dev",
-    "dev": "npm-run-all --parallel dev:web dev:api",
-
-    "build:web": "npm --workspace web run build",
     "build:api": "npm --workspace api run build",
-    "build": "npm-run-all --parallel build:web build:api",
-
-    "start:web": "npm --workspace web run start",
     "start:api": "npm --workspace api run start",
-    "start": "npx npm-run-all --parallel start:web start:api",
-
-
-
-
-    "deploy:web": "npm run build:web && npm run start:web",
-    "deploy:api": "npm run build:api && npm run start:api"
+    "start": "npm run start:api"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5"
@@ -33,6 +20,7 @@
     "npm": ">=8.0.0"
   }
 }
+
 
 
 
