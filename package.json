@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "web",
     "api"
   ],
   "scripts": {
@@ -21,3 +20,4 @@
     "npm": ">=8.0.0"
   }
 }
+
