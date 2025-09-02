@@ -3,7 +3,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -122,7 +121,7 @@ export class UsersService {
   }
 
   /** ✅ Update Status Only */
-  async updateStatus(id: string, status: UserStatus) {
+  async updateStatus(id: string, status: string) {
     const exists = await this.prisma.user.findUnique({ where: { id } });
     if (!exists) throw new NotFoundException(`User with ID ${id} not found`);
 
@@ -141,49 +140,44 @@ export class UsersService {
   }
 
   /** ✅ Get courses assigned/enrolled to a user (with modules and lessons) */
-  /** ✅ Get courses assigned/enrolled to a user (with modules and lessons) */
-async getUserCourses(userId: string) {
-  const userWithCourses = await this.prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      // include the relation explicitly via SELECT
-      assignedCourses: {
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          modules: {
-            orderBy: { order: 'asc' },
-            select: {
-              id: true,
-              title: true,
-              order: true,
-              lessons: {
-                orderBy: { order: 'asc' },
-                select: {
-                  id: true,
-                  title: true,
-                  // ⚠️ remove 'content' because your Lesson model doesn't have it.
-                  // If you have another field (e.g., 'videoId' or 'url'), add it here.
-                  duration: true,
-                  order: true,
+  async getUserCourses(userId: string) {
+    const userWithCourses = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        assignedCourses: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            modules: {
+              orderBy: { order: 'asc' },
+              select: {
+                id: true,
+                title: true,
+                order: true,
+                lessons: {
+                  orderBy: { order: 'asc' },
+                  select: {
+                    id: true,
+                    title: true,
+                    duration: true,
+                    order: true,
+                  },
                 },
               },
             },
           },
         },
       },
-    },
-  });
+    });
 
-  if (!userWithCourses) {
-    throw new NotFoundException(`User with ID ${userId} not found`);
+    if (!userWithCourses) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+    return userWithCourses.assignedCourses;
   }
-  return userWithCourses.assignedCourses;
-}
-
 
   /** ✅ Delete User */
   async remove(id: string) {
@@ -203,4 +197,3 @@ async getUserCourses(userId: string) {
     });
   }
 }
-
