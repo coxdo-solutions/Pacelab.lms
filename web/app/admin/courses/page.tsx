@@ -70,7 +70,7 @@ export default function AdminCoursesPage() {
   const queryClient = useQueryClient();
 
   const API = (
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
+    process.env.NEXT_PUBLIC_API_URL || "https://lmspacelab-6a1c1023fc50.herokuapp.com/"
   ).replace(/\/$/, "");
 
   // Attach auth header
@@ -479,5 +479,6 @@ export default function AdminCoursesPage() {
     </div>
   );
 }
+
 
 
