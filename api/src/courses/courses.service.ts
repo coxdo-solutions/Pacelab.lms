@@ -19,7 +19,6 @@ export class CoursesService {
       },
     });
 
-    // Normalize shape expected by admin UI
     return {
       id: created.id,
       title: created.title,
@@ -40,16 +39,25 @@ export class CoursesService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return rows.map((c) => ({
-      id: c.id,
-      title: c.title,
-      description: c.description ?? '',
-      thumbnail: c.thumbnail ?? '',
-      isActive: true,
-      createdAt: c.createdAt,
-      moduleCount: c._count.modules,
-      enrollmentCount: c._count.enrollments,
-    }));
+    return rows.map(
+      (c: {
+        id: string;
+        title: string;
+        description: string | null;
+        thumbnail: string | null;
+        createdAt: Date;
+        _count: { modules: number; enrollments: number };
+      }) => ({
+        id: c.id,
+        title: c.title,
+        description: c.description ?? '',
+        thumbnail: c.thumbnail ?? '',
+        isActive: true,
+        createdAt: c.createdAt,
+        moduleCount: c._count.modules,
+        enrollmentCount: c._count.enrollments,
+      }),
+    );
   }
 
   async findOneCourse(id: string) {
