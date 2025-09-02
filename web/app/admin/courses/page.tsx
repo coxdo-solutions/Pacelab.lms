@@ -70,7 +70,7 @@ export default function AdminCoursesPage() {
   const queryClient = useQueryClient();
 
   const API = (
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"
+    process.env.NEXT_PUBLIC_API_URL || "https://4e11461f9308.ngrok-free.app"
   ).replace(/\/$/, "");
 
   // Attach auth header
@@ -479,3 +479,4 @@ export default function AdminCoursesPage() {
     </div>
   );
 }
+
