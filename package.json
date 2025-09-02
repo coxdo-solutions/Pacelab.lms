@@ -17,7 +17,7 @@
 
     "start:web": "npm --workspace web run start",
     "start:api": "npm --workspace api run start",
-    "start": "npx npm-run-all --parallel start:web start:api"
+    "start": "npx npm-run-all --parallel start:web start:api",
 
 
     "deploy:web": "npm run build:web && npm run start:web",
@@ -31,4 +31,5 @@
     "npm": ">=8.0.0"
   }
 }
+
 
