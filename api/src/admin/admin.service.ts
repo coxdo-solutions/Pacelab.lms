@@ -31,7 +31,7 @@ export class AdminService {
       _count: { category: true },
     });
 
-    return categories.map((c) => ({
+    return categories.map((c: { category: string | null; _count: { category: number } }) => ({
       name: c.category ?? 'Uncategorized', // ✅ handle null safely
       value: c._count.category,
     }));
