@@ -1,1 +1,1 @@
-web: npm run start:api
+web: npm --workspace api run start:prod
