@@ -10,7 +10,7 @@
     "dev:api": "npm --workspace api run start:dev",
     "build:api": "npm --workspace api run build",
     "start:api": "npm --workspace api run start",
-    "start": "npm run start:api"
+    "start": "npm run start:api",
     "heroku-postbuild": "npm --workspace api run build",
   },
   "devDependencies": {
@@ -21,6 +21,7 @@
     "npm": ">=8.0.0"
   }
 }
+
 
 
 
