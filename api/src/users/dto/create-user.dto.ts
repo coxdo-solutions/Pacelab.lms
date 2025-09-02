@@ -1,8 +1,19 @@
 import {
-  IsEmail, IsNotEmpty, IsOptional, IsString, IsEnum,
-  IsArray, IsUUID
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsArray,
+  IsUUID,
 } from 'class-validator';
-import { Role } from '@prisma/client';
+
+// Define Role enum manually (since Prisma does not export it)
+export enum Role {
+  ADMIN = 'ADMIN',
+  INSTRUCTOR = 'INSTRUCTOR',
+  STUDENT = 'STUDENT',
+}
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -22,7 +33,6 @@ export class CreateUserDto {
 
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })   // ensure each is a UUID
+  @IsUUID('4', { each: true })
   assignedCourseIds?: string[];
 }
-
