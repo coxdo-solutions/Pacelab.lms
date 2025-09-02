@@ -51,7 +51,7 @@ interface UserRow {
 }
 
 export default function AdminUsersPage() {
-  const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+  const API = (process.env.NEXT_PUBLIC_API_URL || 'https://lmspacelab-6a1c1023fc50.herokuapp.com').replace(/\/$/, '');
   const { user, logout } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -382,6 +382,7 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+
 
 
 
