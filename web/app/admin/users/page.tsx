@@ -51,7 +51,7 @@ interface UserRow {
 }
 
 export default function AdminUsersPage() {
-  const API = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000').replace(/\/$/, '');
+  const API = (process.env.NEXT_PUBLIC_API_URL || 'https://4e11461f9308.ngrok-free.app').replace(/\/$/, '');
   const { user, logout } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -382,4 +382,5 @@ export default function AdminUsersPage() {
     </div>
   );
 }
+
 
