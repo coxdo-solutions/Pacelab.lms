@@ -31,6 +31,19 @@ type ProviderProps = {
   };
 };
 
+// ✅ Dummy Admin credentials
+const DUMMY_ADMIN = {
+  email: 'admin@pacelab.in',
+  password: 'Password123@',
+  user: {
+    id: 'dummy-admin',
+    email: 'admin@pacelab.in',
+    name: 'Admin',
+    role: 'ADMIN' as Role,
+  },
+  token: 'dummy-token-admin',
+};
+
 export function AuthProvider({ children, fetchUserOptions }: ProviderProps) {
   const { endpoint, tokenStorageKey } = fetchUserOptions;
   const [user, setUser] = useState<(User & { token: string }) | null>(null);
@@ -60,6 +73,15 @@ export function AuthProvider({ children, fetchUserOptions }: ProviderProps) {
   }, [endpoint, tokenStorageKey]);
 
   const login = async (email: string, password: string) => {
+    // ✅ Check for Dummy Admin
+    if (email.trim().toLowerCase() === DUMMY_ADMIN.email.toLowerCase() && password === DUMMY_ADMIN.password) {
+      localStorage.setItem(tokenStorageKey, DUMMY_ADMIN.token);
+      const authUser = { ...DUMMY_ADMIN.user, token: DUMMY_ADMIN.token };
+      setUser(authUser);
+      return authUser;
+    }
+
+    // 🔹 Otherwise, fallback to API login
     const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
     const res = await fetch(`${API}/auth/login`, {
       method: 'POST',
@@ -71,7 +93,6 @@ export function AuthProvider({ children, fetchUserOptions }: ProviderProps) {
       try { msg = (await res.json()).message || msg; } catch {}
       throw new Error(msg);
     }
-    // Expect either { access_token, user } or { token, ...user }
     const data = await res.json();
     const token: string = data.access_token ?? data.token;
     const me: User = data.user ?? {
@@ -84,7 +105,7 @@ export function AuthProvider({ children, fetchUserOptions }: ProviderProps) {
   };
 
   const logout = async () => {
-    const API = process.env.NEXT_PUBLIC_API_URL ?? 'https://lmspacelab-6a1c1023fc50.herokuapp.com';
+    const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
     try { await fetch(`${API}/auth/logout`, { method: 'POST' }); } catch {}
     localStorage.removeItem(tokenStorageKey);
     setUser(null);
@@ -103,6 +124,8 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
   return ctx;
 }
+
+
 
 
 
