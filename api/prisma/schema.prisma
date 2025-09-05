@@ -4,8 +4,10 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL") // pooled (6543) for the app
-  directUrl = env("DIRECT_URL")   // direct (5432) for migrate/studio
+  // ✅ Use DATABASE_URL in production (Heroku)
+  // ✅ Use DIRECT_URL locally for migrations/Studio
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -75,7 +77,7 @@ model Module {
   title     String
   order     Int      @default(1)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 
   courseId String
   course   Course   @relation("CourseModules", fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -97,7 +99,7 @@ model Lesson {
   order       Int      @default(1)
   isPreview   Boolean  @default(false)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 
   // Optional YouTube metadata
   youtubePrivacyStatus String?
@@ -125,7 +127,7 @@ model LessonProgress {
   progress      Int       @default(0)
   lastWatchedAt DateTime?
   createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  updatedAt     DateTime  @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade, onUpdate: Cascade)
