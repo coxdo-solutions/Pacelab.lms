@@ -12,9 +12,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, Menu, X } from "lucide-react"; // removed unused icons
+import { LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -26,7 +27,6 @@ export function Navbar() {
     router.push("/login");
   };
 
-  // ✅ Only use firstName + email
   const getInitials = (firstName?: string | null, email?: string | null) => {
     const a = firstName?.trim()?.[0] ?? "";
     if (a) return a.toUpperCase();
@@ -50,15 +50,19 @@ export function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-gradient-to-r from-[#0C1838] via-[#1E3A8A] to-[#0C1838] text-white backdrop-blur-2xl shadow-xl">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link
-            href="/"
-            className="text-2xl font-extrabold tracking-wider hover:scale-105 transition-transform"
-          >
-            PaceLab.in
+          <Link href="/" className="flex items-center gap-2">
+            <Image
+              src="/logo.pacelab.png" // replace with your logo path
+              alt="PaceLab Logo"
+              width={150}
+              height={150}
+              className="rounded-lg"
+            />
+          
           </Link>
 
           {/* Desktop Navigation */}
@@ -67,11 +71,11 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="relative text-sm font-medium text-white/80 hover:text-white transition-colors"
+                className="relative text-sm font-semibold text-white/90 hover:text-white transition-colors"
               >
                 {item.label}
                 <motion.span
-                  className="absolute -bottom-1 left-0 w-full h-[2px] bg-white origin-left scale-x-0"
+                  className="absolute -bottom-1 left-0 w-full h-[2px] bg-gradient-to-r from-pink-500 to-blue-500 origin-left scale-x-0"
                   whileHover={{ scaleX: 1 }}
                   transition={{ duration: 0.3 }}
                 />
@@ -91,22 +95,22 @@ export function Navbar() {
                   className="md:hidden text-white hover:bg-white/10"
                 >
                   {isMobileMenuOpen ? (
-                    <X className="w-5 h-5" />
+                    <X className="w-6 h-6" />
                   ) : (
-                    <Menu className="w-5 h-5" />
+                    <Menu className="w-6 h-6" />
                   )}
                 </Button>
 
                 {/* User Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <motion.div whileTap={{ scale: 0.9 }}>
+                    <motion.div whileTap={{ scale: 0.95 }}>
                       <Button
                         variant="ghost"
                         className="relative h-11 w-11 rounded-full hover:bg-white/10"
                       >
-                        <Avatar className="h-11 w-11 ring-2 ring-white/30 shadow">
-                          <AvatarFallback className="bg-white/20 text-white font-semibold">
+                        <Avatar className="h-11 w-11 ring-2 ring-white/30 shadow-md">
+                          <AvatarFallback className="bg-gradient-to-r from-indigo-500 to-blue-600 text-white font-semibold">
                             {getInitials(user.firstName, user.email)}
                           </AvatarFallback>
                         </Avatar>
@@ -114,38 +118,34 @@ export function Navbar() {
                     </motion.div>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
-                    className="w-60 rounded-2xl shadow-xl bg-white text-black"
+                    className="w-64 rounded-2xl shadow-2xl bg-white text-black border border-gray-100"
                     align="end"
                   >
-                    <div className="flex items-center gap-2 p-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarFallback className="bg-black text-white text-xs">
+                    <div className="flex items-center gap-3 p-3 border-b">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-black text-white text-sm">
                           {getInitials(user.firstName, user.email)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium">
+                      <div>
+                        <p className="text-sm font-semibold">
                           {(user.firstName ?? "").trim()}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {user.email}
-                        </p>
+                        <p className="text-xs text-gray-500">{user.email}</p>
                       </div>
                     </div>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={handleLogout}
-                      className="text-destructive"
+                      className="text-red-600 hover:bg-red-50"
                     >
                       <LogOut className="mr-2 h-4 w-4" /> Log out
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
             ) : (
               <Link href="/login">
-                <Button className="rounded-xl bg-white text-[#0C1838] font-semibold shadow hover:bg-white/90 transition">
+                <Button className="rounded-xl bg-gradient-to-r from-pink-500 to-blue-600 text-white font-semibold shadow-lg hover:opacity-90 transition">
                   Sign In
                 </Button>
               </Link>
@@ -161,14 +161,14 @@ export function Navbar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden border-t border-white/20 py-4 space-y-2"
+              className="md:hidden border-t border-white/10 py-4 space-y-2 bg-gradient-to-b from-[#0C1838]/95 to-[#1E3A8A]/95 rounded-b-xl"
             >
               {getNavigationItems().map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+                  className="block px-4 py-2 rounded-lg text-sm font-semibold text-white/90 hover:text-white hover:bg-white/10 transition"
                 >
                   {item.label}
                 </Link>
@@ -180,3 +180,5 @@ export function Navbar() {
     </header>
   );
 }
+
+
