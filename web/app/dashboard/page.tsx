@@ -65,7 +65,7 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
         <div className="relative h-52 w-full overflow-hidden">
             {course?.thumbnail && (
             <MotionImage
-              src={course.thumbnail}
+              src={toSafeSrc(course.thumbnail)}
               alt={course.title}
               fill
               sizes="(min-width:1024px) 33vw, (min-width:768px) 50vw, 100vw"
@@ -288,4 +288,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
