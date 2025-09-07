@@ -24,12 +24,12 @@ interface Course {
   id: string;
   title: string;
   description: string;
-  thumbnail: string | null | undefined; // can be absolute URL or relative path
+  thumbnail: string | null | undefined; // can be absolute URLrelative path
   progress: number; // 0..100
   totalLessons: number;
   completedLessons: number;
   duration: string; // e.g. "3h 20m"
-  expiresAt?: string;
+  expiresAt?: strng;
 }
 
 // Normalize/guard the thumbnail to a safe, absolute URL
@@ -51,7 +51,7 @@ const toSafeSrc = (thumb: string | undefined | null) => {
 };
 
 function CourseCard({ course, index }: { course: Course; index: number }) {
-  const [imgError, setImgError] = useState(false);
+  const [imgError, ser] = useState(false);
 
   return (
     <motion.div
@@ -222,26 +222,42 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0 }}
             className="flex flex-col md:flex-row items-center gap-8"
           >
-            {/* Placeholder image, replace src with your image */}
-            <div className="w-full md:w-1/2 flex justify-center mb-6 md:mb-0">
-              <div className="w-48 h-48 md:w-64 md:h-64 bg-gray-200 rounded-2xl flex items-center justify-center overflow-hidden">
-                {/* Replace the src below with your actual image path */}
+            {/* About text on the left, image on the right */}
+            <div className="w-full md:w-1/2 text-center md:text-left order-2 md:order-1 flex flex-col justify-center">
+              <h1 className="text-4xl md:text-5xl font-extrabold bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] bg-clip-text text-transparent mb-6 leading-tight">
+                Welcome to <span className="block">PaceLab LMS</span>
+              </h1>
+              <p className="text-gray-700 text-lg md:text-xl max-w-xl mx-auto md:mx-0 mb-6">
+                <span className="font-semibold text-[#1E3A8A]">PaceLab LMS</span> is your modern learning platform, designed to help you master new skills, track your progress, and achieve your goals. <br className="hidden md:block" />
+                <span className="inline-block mt-2">Explore interactive courses, monitor your achievements, and join a vibrant learning community.</span>
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center md:justify-start mt-4">
+                <span className="inline-flex items-center gap-2 bg-blue-50 text-blue-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm">
+                  <PlayCircle className="w-4 h-4" /> Interactive Courses
+                </span>
+                <span className="inline-flex items-center gap-2 bg-green-50 text-green-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm">
+                  <Trophy className="w-4 h-4" /> Track Progress
+                </span>
+                <span className="inline-flex items-center gap-2 bg-purple-50 text-purple-800 px-4 py-2 rounded-full text-sm font-medium shadow-sm">
+                  <Clock className="w-4 h-4" /> Learn at Your Pace
+                </span>
+              </div>
+            </div>
+            {/* Image on the right */}
+            <div className="w-full md:w-1/2 flex justify-center order-1 md:order-2 mb-8 md:mb-0">
+              <div className="relative w-48 h-48 md:w-72 md:h-72 bg-gradient-to-br from-[#e0e7ff] to-[#f0f4ff] rounded-3xl flex items-center justify-center overflow-hidden shadow-xl border border-blue-100">
                 <Image
                   src="/about-illustration.png"
                   alt="About PaceLab LMS"
-                  width={256}
-                  height={256}
-                  className="object-contain w-full h-full"
+                  width={288}
+                  height={288}
+                  className="object-contain w-full h-full drop-shadow-xl"
+                  priority
                 />
+                {/* Decorative floating dot */}
+                <span className="absolute -top-3 -right-3 w-8 h-8 bg-gradient-to-br from-blue-400 to-indigo-400 rounded-full opacity-30 animate-pulse"></span>
+                <span className="absolute bottom-2 left-2 w-4 h-4 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full opacity-40 animate-bounce"></span>
               </div>
-            </div>
-            <div className="w-full md:w-1/2 text-center md:text-left">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] bg-clip-text text-transparent mb-4">
-                Welcome to PaceLab LMS
-              </h1>
-              <p className="text-muted-foreground text-lg max-w-xl mx-auto md:mx-0">
-                PaceLab LMS is your modern learning platform, designed to help you master new skills, track your progress, and achieve your goals. Explore interactive courses, monitor your achievements, and join a vibrant learning community.
-              </p>
             </div>
           </motion.div>
         </section>
