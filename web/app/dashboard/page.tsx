@@ -212,22 +212,24 @@ export default function DashboardPage() {
     <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
 
-      <main className="container mx-auto px-4 py-10 flex-1">
-        {/* Welcome Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10 text-center"
-        >
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] bg-clip-text text-transparent">
-            Welcome back, {user?.firstName}!
-          </h1>
-          <p className="text-muted-foreground mt-2 text-lg">
-            Continue your learning journey with style ✨
-          </p>
-        </motion.div>
 
-        {/* Stats */}
+      <main className="container mx-auto px-4 py-10 flex-1">
+        {/* About Section */}
+        <section className="mb-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] bg-clip-text text-transparent">
+              Welcome to PaceLab LMS
+            </h1>
+            <p className="text-muted-foreground mt-2 text-lg max-w-2xl mx-auto">
+              PaceLab LMS is your modern learning platform, designed to help you master new skills, track your progress, and achieve your goals. Explore interactive courses, monitor your achievements, and join a vibrant learning community.
+            </p>
+          </motion.div>
+        </section>
+
+        {/* Stats Section */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
           {statCards.map((s, i) => (
             <motion.div
@@ -252,7 +254,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Courses Section */}
-        <div>
+        <section>
           <h2 className="text-2xl font-semibold mb-6 text-[#0C1838]">Your Courses</h2>
 
           {error ? (
@@ -283,8 +285,20 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
-        </div>
+        </section>
       </main>
+
+      <footer className="w-full border-t py-6 text-center text-sm text-muted-foreground bg-gray-50">
+        © {new Date().getFullYear()} PaceLab LMS &mdash; Powered by{" "}
+        <a
+          href="https://www.coxdo.in"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-[#0C1838]"
+        >
+          Coxdo Solutions
+        </a>
+      </footer>
     </div>
   );
 }
