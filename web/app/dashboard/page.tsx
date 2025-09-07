@@ -29,7 +29,7 @@ interface Course {
   totalLessons: number;
   completedLessons: number;
   duration: string; // e.g. "3h 20m"
-  expiresAt?: strng;
+  expiresAt?: string;
 }
 
 // Normalize/guard the thumbnail to a safe, absolute URL
@@ -311,4 +311,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
