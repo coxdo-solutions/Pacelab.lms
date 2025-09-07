@@ -23,6 +23,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.imgix.net' },        // imgix
       { protocol: 'https', hostname: '**.googleusercontent.com' }, // gusercontent
     ],
+    domains: ['i.postimg.cc'], 
     // If you use custom loaders/CDN, you can set `unoptimized: true`
     // unoptimized: true,
   },
