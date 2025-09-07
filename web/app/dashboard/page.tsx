@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Clock, PlayCircle, Trophy } from "lucide-react";
 
-const MotionImage = motion(Image);
+const MotionImage = motion.div;
 
 interface Course {
   id: string;
@@ -288,6 +288,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
