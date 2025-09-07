@@ -214,44 +214,37 @@ export default function DashboardPage() {
 
 
       <main className="container mx-auto px-4 py-10 flex-1">
-        {/* About Section */}
-        <section className="mb-10 text-center">
+
+        {/* About Section (responsive, image left, text right) */}
+        <section className="mb-10">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col md:flex-row items-center gap-8"
           >
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] bg-clip-text text-transparent">
-              Welcome to PaceLab LMS
-            </h1>
-            <p className="text-muted-foreground mt-2 text-lg max-w-2xl mx-auto">
-              PaceLab LMS is your modern learning platform, designed to help you master new skills, track your progress, and achieve your goals. Explore interactive courses, monitor your achievements, and join a vibrant learning community.
-            </p>
+            {/* Placeholder image, replace src with your image */}
+            <div className="w-full md:w-1/2 flex justify-center mb-6 md:mb-0">
+              <div className="w-48 h-48 md:w-64 md:h-64 bg-gray-200 rounded-2xl flex items-center justify-center overflow-hidden">
+                {/* Replace the src below with your actual image path */}
+                <Image
+                  src="/about-illustration.png"
+                  alt="About PaceLab LMS"
+                  width={256}
+                  height={256}
+                  className="object-contain w-full h-full"
+                />
+              </div>
+            </div>
+            <div className="w-full md:w-1/2 text-center md:text-left">
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] bg-clip-text text-transparent mb-4">
+                Welcome to PaceLab LMS
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto md:mx-0">
+                PaceLab LMS is your modern learning platform, designed to help you master new skills, track your progress, and achieve your goals. Explore interactive courses, monitor your achievements, and join a vibrant learning community.
+              </p>
+            </div>
           </motion.div>
         </section>
-
-        {/* Stats Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-          {statCards.map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-            >
-              <Card className="rounded-2xl border-0 shadow-xl overflow-hidden">
-                <CardContent className="p-5 flex items-center gap-4">
-                  <div className={`p-3 rounded-xl bg-gradient-to-r ${s.color} text-white`}>
-                    <s.icon className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="text-sm text-muted-foreground">{s.label}</div>
-                    <div className="text-2xl font-semibold">{s.value}</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
-        </div>
 
         {/* Courses Section */}
         <section>
