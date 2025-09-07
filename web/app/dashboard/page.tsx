@@ -63,16 +63,16 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
     >
       <Card className="rounded-3xl overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
         <div className="relative h-52 w-full overflow-hidden">
-            {course?.thumbnail && (
+            
             <img
-              src={toSafeSrc(course.thumbnail)}
+              src={course.thumbnail}
               alt={course.title}
               fill
               sizes="(min-width:1024px) 33vw, (min-width:768px) 50vw, 100vw"
               className="object-cover"
               priority={false}
               referrerPolicy="no-referrer"
-            />
+            
           )}
           <div className="absolute top-4 right-4">
             <Badge
