@@ -77,7 +77,7 @@ export function YouTubeVideoUploader({ onUploadSuccess }: Props) {
         result = await uploadWithProgress(formData);
       } catch {
         // Fallback: disk → YouTube route if stream endpoint not available
-        const res = await fetch(`${API_BASE}/youtube/upload`, { method: 'POST', body: formData });
+        const res = await fetch(`${API_BASE}/youtube/upload/stream`, { method: 'POST', body: formData });
         if (!res.ok) throw new Error(await res.text());
         result = await res.json();
         setProgress(100);
@@ -156,4 +156,5 @@ export function YouTubeVideoUploader({ onUploadSuccess }: Props) {
     </Card>
   );
 }
+
 
