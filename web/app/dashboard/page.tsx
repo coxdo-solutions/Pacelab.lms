@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Clock, PlayCircle, Trophy } from "lucide-react";
 
-// const MotionImage = motion.div;
+const MotionImage = motion(Image);
 
 interface Course {
   id: string;
@@ -54,25 +54,25 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div
-{/*       initial={{ opacity: 0, y: 20 }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
       whileHover={{ scale: 1.02 }}
-      className="group" */}
+      className="group"
     >
       <Card className="rounded-3xl overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
         <div className="relative h-52 w-full overflow-hidden">
-            
-            <div
-              src={toSafeSrc(course.thumbnail)}
+            {course?.thumbnail && (
+            <MotionImage
+              src={course.thumbnail}
               alt={course.title}
               fill
               sizes="(min-width:1024px) 33vw, (min-width:768px) 50vw, 100vw"
               className="object-cover"
               priority={false}
               referrerPolicy="no-referrer"
-            
+            />
           )}
           <div className="absolute top-4 right-4">
             <Badge
@@ -118,7 +118,7 @@ function CourseCard({ course, index }: { course: Course; index: number }) {
           </Link>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }
 
@@ -288,9 +288,4 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-
-
-
-
 
