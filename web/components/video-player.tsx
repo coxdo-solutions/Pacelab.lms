@@ -657,7 +657,12 @@ export function VideoPlayer({
         )}
 
         {/* Player host */}
-        <div id={hostId} ref={playerHostRef} className="w-full h-full" />
+        <div 
+          id={hostId} 
+          ref={playerHostRef} 
+          className="w-full h-full"
+          key={`${hostId}-${resolvedId || 'empty'}`} // Force re-render on video change
+        />
 
         {/* Error */}
         {videoIdError && !blockedByDomain && (
