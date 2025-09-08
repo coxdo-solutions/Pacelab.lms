@@ -1,3 +1,7 @@
+// ===========================
+// components/video-player.tsx
+// ===========================
+
 "use client";
 
 import React, {
@@ -69,15 +73,16 @@ function parseYouTubeId(input: string | undefined | null): string | null {
 
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2] as const;
 const ALLOWED_HOSTS_FALLBACK = [
-  "pacelab-lms-web.vercel.app",
-  "pacelab.in",
-  "pacelab-api.onrender.com",
+  "pacelab-lms-web.vercel.app", // production Vercel app
+  "pacelab.in", // your custom domain (if used)
+  "pacelab-api.onrender.com", // backend domain (if needed)
   "localhost",
   "127.0.0.1",
 ];
 
 function isAllowedHost(hostname: string) {
   if (!hostname) return false;
+  // allow all vercel preview subdomains automatically
   if (hostname.endsWith(".vercel.app")) return true;
   return ALLOWED_HOSTS_FALLBACK.includes(hostname);
 }
@@ -90,16 +95,14 @@ export function VideoPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const playerHostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<any>(null);
-  const shieldRef = useRef<HTMLDivElement>(null);
 
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const hideControlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const blockedToastTimer = useRef<NodeJS.Timeout | null>(null);
-  const inspectionBlockTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const playerInitRef = useRef(false);
-  const mountedRef = useRef(false);
+  const playerInitRef = useRef(false); // guard: prevent double init/races
+  const mountedRef = useRef(false); // track mount state
 
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -118,7 +121,7 @@ export function VideoPlayer({
     ? `https://img.youtube.com/vi/${resolvedId}/hqdefault.jpg`
     : null;
   const storageKey = `vp:${lessonId}`;
-  const hostId = useMemo(() => `yt-host-${lessonId}`, [lessonId]);
+  const hostId = useMemo(() => `yt-host-${lessonId}`, [lessonId]); // stable id so YT can attach reliably
 
   useEffect(() => {
     try {
@@ -129,153 +132,25 @@ export function VideoPlayer({
     }
   }, []);
 
-  // Enhanced DevTools Detection and Blocking
-  useEffect(() => {
-    let devtoolsOpen = false;
-
-    const detectDevTools = () => {
-      const threshold = 160;
-      const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-      const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-
-      if (widthThreshold || heightThreshold) {
-        if (!devtoolsOpen) {
-          devtoolsOpen = true;
-          showBlockedMessage("Developer tools detected. Video access restricted.");
-        }
-      } else {
-        devtoolsOpen = false;
-      }
-    };
-
-    // Detect console access
-    let consoleOpen = false;
-    const detectConsole = () => {
-      const startTime = performance.now();
-      console.clear();
-      const endTime = performance.now();
-      if (endTime - startTime > 100) {
-        if (!consoleOpen) {
-          consoleOpen = true;
-          showBlockedMessage("Console access detected. Video protected.");
-        }
-      }
-    };
-
-    // Block right-click context menu globally on this component
-    const blockContextMenu = (e: MouseEvent) => {
-      if (containerRef.current?.contains(e.target as Node)) {
-        e.preventDefault();
-        e.stopPropagation();
-        showBlockedMessage("Right-click disabled for security.");
-        return false;
-      }
-    };
-
-    // Block F12, Ctrl+Shift+I, Ctrl+U, etc.
-    const blockKeyboardShortcuts = (e: KeyboardEvent) => {
-      if (!containerRef.current?.contains(document.activeElement)) return;
-
-      const forbidden = [
-        { key: 'F12', ctrl: undefined, shift: undefined, alt: undefined },
-        { key: 'I', ctrl: true, shift: true, alt: undefined },
-        { key: 'J', ctrl: true, shift: true, alt: undefined },
-        { key: 'C', ctrl: true, shift: true, alt: undefined },
-        { key: 'U', ctrl: true, shift: undefined, alt: undefined },
-        { key: 'S', ctrl: true, shift: undefined, alt: undefined },
-        { key: 'A', ctrl: true, shift: undefined, alt: undefined },
-        { key: 'P', ctrl: true, shift: undefined, alt: undefined },
-      ];
-
-      const current = {
-        key: e.key,
-        ctrl: e.ctrlKey || e.metaKey,
-        shift: e.shiftKey,
-        alt: e.altKey
-      };
-
-      const isForbidden = forbidden.some(combo => {
-        return combo.key === current.key &&
-               (combo.ctrl === undefined || combo.ctrl === current.ctrl) &&
-               (combo.shift === undefined || combo.shift === current.shift) &&
-               (combo.alt === undefined || combo.alt === current.alt);
-      });
-
-      if (isForbidden) {
-        e.preventDefault();
-        e.stopPropagation();
-        showBlockedMessage("Keyboard shortcut blocked for security.");
-        return false;
-      }
-    };
-
-    // Detect element inspection attempts
-    const blockInspection = () => {
-      const elements = containerRef.current?.querySelectorAll('*');
-      if (elements) {
-        elements.forEach(el => {
-          // Block selection
-          (el as HTMLElement).style.webkitUserSelect = 'none';
-          (el as HTMLElement).style.userSelect = 'none';
-
-          // Add mutation observer to detect tampering
-          const observer = new MutationObserver(() => {
-            showBlockedMessage("Element tampering detected.");
-          });
-
-          observer.observe(el, {
-            attributes: true,
-            attributeFilter: ['style', 'class']
-          });
-        });
-      }
-    };
-
-    const interval = setInterval(() => {
-      detectDevTools();
-      detectConsole();
-    }, 1000);
-
-    document.addEventListener('contextmenu', blockContextMenu);
-    document.addEventListener('keydown', blockKeyboardShortcuts);
-
-    // Initial inspection blocking
-    setTimeout(blockInspection, 1000);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('contextmenu', blockContextMenu);
-      document.removeEventListener('keydown', blockKeyboardShortcuts);
-    };
-  }, []);
-
-  const showBlockedMessage = (message: string) => {
-    console.clear();
-    console.log('%c🛡️ CONTENT PROTECTED', 'color: red; font-size: 20px; font-weight: bold;');
-    setShowBlockedNotice(true);
-    if (blockedToastTimer.current) clearTimeout(blockedToastTimer.current);
-    blockedToastTimer.current = setTimeout(() => {
-      setShowBlockedNotice(false);
-    }, 2000);
-  };
-
-  // Load YT API
+  // Load YT API (idempotent)
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (window.YT?.Player) return;
-    if (document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) return;
-
+    if (
+      document.querySelector('script[src="https://www.youtube.com/iframe_api"]')
+    )
+      return;
     const tag = document.createElement("script");
     tag.src = "https://www.youtube.com/iframe_api";
     tag.async = true;
     document.head.appendChild(tag);
-
     const prevCb = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
       prevCb?.();
     };
   }, []);
 
+  // Track mount
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -283,6 +158,7 @@ export function VideoPlayer({
     };
   }, []);
 
+  // Init / re-init (race-proof)
   useEffect(() => {
     clearProgressInterval();
     setIsReady(false);
@@ -290,7 +166,7 @@ export function VideoPlayer({
     setCurrentTime(0);
     setDuration(0);
     setVideoIdError(null);
-    playerInitRef.current = false;
+    playerInitRef.current = false; // allow fresh init after deps change
 
     if (blockedByDomain) return;
     if (youtubeVideoId == null) return;
@@ -305,29 +181,32 @@ export function VideoPlayer({
       const hostEl = document.getElementById(hostId);
       if (!hostEl) return;
       if (!window.YT || !window.YT.Player) return;
-      playerInitRef.current = true;
+      playerInitRef.current = true; // lock before constructing
       initPlayer(resolvedId);
     };
 
+    // Poll until both host element and YT API are ready
     const poll = setInterval(() => {
       tryInit();
       if (playerInitRef.current) clearInterval(poll);
     }, 100);
 
     return () => clearInterval(poll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedId, youtubeVideoId, blockedByDomain, hostId]);
 
   function initPlayer(id: string) {
     try {
+      // IMPORTANT: pass the host **id string** so YT manages DOM in-place reliably
       playerRef.current = new window.YT.Player(hostId, {
         height: "100%",
         width: "100%",
         videoId: id,
         host: "https://www.youtube-nocookie.com",
         playerVars: {
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
+          controls: 0, // no native controls
+          disablekb: 1, // block YT keyboard
+          fs: 0, // hide YT fullscreen button
           modestbranding: 1,
           rel: 0,
           cc_load_policy: 0,
@@ -342,7 +221,7 @@ export function VideoPlayer({
         },
       });
     } catch (e) {
-      playerInitRef.current = false;
+      playerInitRef.current = false; // allow retry
       setVideoIdError("Failed to initialize YouTube player.");
       console.error(e);
     }
@@ -350,26 +229,34 @@ export function VideoPlayer({
 
   function hardenIframe() {
     try {
-      const iframe = playerHostRef.current?.querySelector("iframe") as HTMLIFrameElement | null;
+      const iframe = playerHostRef.current?.querySelector(
+        "iframe"
+      ) as HTMLIFrameElement | null;
       if (!iframe) return;
 
-      // Complete iframe protection
-      iframe.style.pointerEvents = "none";
+      // Optional: keep this if you want to block clicks on iframe itself
+      // iframe.style.pointerEvents = "none";
+
       iframe.tabIndex = -1;
       iframe.setAttribute("aria-hidden", "true");
-      iframe.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen");
+
+      // REMOVE the referrerpolicy line completely
+      // iframe.setAttribute("referrerpolicy", "no-referrer");
+
+      // Allow fullscreen + media controls
+      iframe.setAttribute(
+        "allow",
+        "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+      );
       iframe.setAttribute("allowfullscreen", "true");
-      iframe.setAttribute("sandbox", "allow-scripts allow-same-origin allow-presentation");
+
+      // Loosen sandbox just enough
+      iframe.setAttribute(
+        "sandbox",
+        "allow-scripts allow-same-origin allow-presentation allow-popups"
+      );
+
       iframe.setAttribute("draggable", "false");
-
-      // Additional security attributes
-      iframe.style.webkitUserSelect = "none";
-      iframe.style.userSelect = "none";
-      (iframe.style as any).webkitTouchCallout = "none";
-      iframe.style.touchAction = "none";
-
-      // Hide from accessibility tree
-      iframe.setAttribute("role", "presentation");
     } catch {}
   }
 
@@ -382,6 +269,7 @@ export function VideoPlayer({
     setIsMuted(e.target.isMuted?.() ?? false);
     hardenIframe();
 
+    // restore progress
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -409,7 +297,9 @@ export function VideoPlayer({
   }
 
   function onPlayerError(e: any) {
-    setVideoIdError("Unable to load this YouTube video (invalid ID or restricted).");
+    setVideoIdError(
+      "Unable to load this YouTube video (invalid ID or restricted)."
+    );
     console.error("YouTube Player Error:", e?.data);
   }
 
@@ -423,7 +313,10 @@ export function VideoPlayer({
       setCurrentTime(current);
       setDuration(total);
       try {
-        localStorage.setItem(storageKey, JSON.stringify({ t: current, d: total, at: Date.now() }));
+        localStorage.setItem(
+          storageKey,
+          JSON.stringify({ t: current, d: total, at: Date.now() })
+        );
       } catch {}
       const completed = total > 0 && current / total >= 0.95;
       onProgress({ currentTime: current, duration: total, completed });
@@ -440,6 +333,7 @@ export function VideoPlayer({
   function destroyPlayer() {
     try {
       const p = playerRef.current;
+      // only destroy if iframe is attached; avoids mid-mount races
       if (p?.getIframe && p.getIframe()) {
         p.destroy?.();
       }
@@ -485,21 +379,22 @@ export function VideoPlayer({
   }
 
   function getFullscreenElement(): Element | null {
-    return document.fullscreenElement || (document as any).webkitFullscreenElement || null;
+    return (
+      document.fullscreenElement ||
+      (document as any).webkitFullscreenElement ||
+      null
+    );
   }
-
   function requestFullscreen(el: Element) {
     const anyEl = el as any;
     if (anyEl.requestFullscreen) return anyEl.requestFullscreen();
     if (anyEl.webkitRequestFullscreen) return anyEl.webkitRequestFullscreen();
   }
-
   function exitFullscreen() {
     const anyDoc = document as any;
     if (document.exitFullscreen) return document.exitFullscreen();
     if (anyDoc.webkitExitFullscreen) return anyDoc.webkitExitFullscreen();
   }
-
   function toggleFullscreen() {
     const container = containerRef.current;
     if (!container) return;
@@ -519,14 +414,16 @@ export function VideoPlayer({
 
   function handleMouseMove() {
     setShowControls(true);
-    if (hideControlsTimeoutRef.current) clearTimeout(hideControlsTimeoutRef.current);
+    if (hideControlsTimeoutRef.current)
+      clearTimeout(hideControlsTimeoutRef.current);
     hideControlsTimeoutRef.current = setTimeout(() => {
       if (isPlaying) setShowControls(false);
     }, 3000);
   }
 
+  // Shield handlers: show "blocked" toast; single click play/pause, double click fullscreen
   function handleShieldClick() {
-    showBlockedMessage("Direct video interaction blocked for security.");
+    showBlocked();
     if (clickTimeoutRef.current) {
       clearTimeout(clickTimeoutRef.current);
       clickTimeoutRef.current = null;
@@ -540,29 +437,21 @@ export function VideoPlayer({
     }
   }
 
-  // Enhanced keyboard handling with security
+  function showBlocked() {
+    setShowBlockedNotice(true);
+    if (blockedToastTimer.current) clearTimeout(blockedToastTimer.current);
+    blockedToastTimer.current = setTimeout(
+      () => setShowBlockedNotice(false),
+      1300
+    );
+  }
+
+  // Keyboard (our own; YT kb disabled)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (!containerRef.current) return;
       const hasFocus = containerRef.current.contains(document.activeElement);
       if (!hasFocus) return;
-
-      // Block inspection shortcuts first
-      const inspectionKeys = ['F12', 'I', 'J', 'C', 'U', 'S', 'A', 'P'];
-      const isInspectionAttempt = inspectionKeys.some(key => {
-        if (key === 'F12') return e.key === 'F12';
-        return e.key.toLowerCase() === key.toLowerCase() && (e.ctrlKey || e.metaKey) &&
-               (key === 'I' || key === 'J' || key === 'C' ? e.shiftKey : !e.shiftKey);
-      });
-
-      if (isInspectionAttempt) {
-        e.preventDefault();
-        e.stopPropagation();
-        showBlockedMessage("Inspection shortcut blocked.");
-        return;
-      }
-
-      // Allow video control shortcuts
       switch (e.key.toLowerCase()) {
         case " ":
         case "k":
@@ -583,7 +472,10 @@ export function VideoPlayer({
           break;
         case "arrowright":
           e.preventDefault();
-          playerRef.current?.seekTo?.(Math.min(duration, currentTime + 5), true);
+          playerRef.current?.seekTo?.(
+            Math.min(duration, currentTime + 5),
+            true
+          );
           break;
         case "arrowup":
           e.preventDefault();
@@ -595,17 +487,17 @@ export function VideoPlayer({
           break;
       }
     };
-
-    window.addEventListener("keydown", handler, true); // Use capture phase
-    return () => window.removeEventListener("keydown", handler, true);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTime, duration, volume, togglePlay]);
 
   useEffect(() => {
     return () => {
-      if (hideControlsTimeoutRef.current) clearTimeout(hideControlsTimeoutRef.current);
+      if (hideControlsTimeoutRef.current)
+        clearTimeout(hideControlsTimeoutRef.current);
       if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
       if (blockedToastTimer.current) clearTimeout(blockedToastTimer.current);
-      if (inspectionBlockTimer.current) clearTimeout(inspectionBlockTimer.current);
       clearProgressInterval();
       destroyPlayer();
     };
@@ -620,27 +512,10 @@ export function VideoPlayer({
   }
 
   const secureHandlers = {
-    onContextMenu: (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      showBlockedMessage("Right-click disabled for security.");
-      return false;
-    },
-    onDragStart: (e: React.DragEvent) => {
-      e.preventDefault();
-      showBlockedMessage("Dragging disabled for security.");
-      return false;
-    },
-    onCopy: (e: React.ClipboardEvent) => {
-      e.preventDefault();
-      showBlockedMessage("Copying disabled for security.");
-      return false;
-    },
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    onDragStart: (e: React.DragEvent) => e.preventDefault(),
+    onCopy: (e: React.ClipboardEvent) => e.preventDefault(),
     onWheel: (e: React.WheelEvent) => e.preventDefault(),
-    onSelectStart: (e: React.SyntheticEvent) => {
-      e.preventDefault();
-      return false;
-    },
   } as const;
 
   return (
@@ -666,127 +541,91 @@ export function VideoPlayer({
         suppressHydrationWarning
         {...secureHandlers}
       >
-        {/* Player host - completely isolated */}
+        {/* === TRANSPARENT SHIELD === */}
         <div
-          id={hostId}
-          ref={playerHostRef}
-          className="w-full h-full"
-          style={{
-            pointerEvents: "none",
-            WebkitUserSelect: "none",
-            userSelect: "none",
-          }}
-        />
-
-        {/* ENHANCED TRANSPARENT SHIELD - Multi-layered protection */}
-        <div
-          ref={shieldRef}
-          className="absolute inset-0 z-50 bg-transparent"
+          className="absolute inset-0 z-30 bg-transparent cursor-not-allowed"
           onClick={handleShieldClick}
           onDoubleClick={(e) => {
             e.preventDefault();
-            e.stopPropagation();
+            showBlocked();
             toggleFullscreen();
           }}
-          onMouseDown={(e) => {
+          onContextMenu={(e) => {
             e.preventDefault();
-            e.stopPropagation();
+            showBlocked();
           }}
-          onMouseUp={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
+          onMouseDown={(e) => e.preventDefault()}
           onTouchStart={(e) => {
             e.preventDefault();
-            e.stopPropagation();
+            showBlocked();
           }}
-          onTouchEnd={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-          }}
-          style={{
-            pointerEvents: "auto",
-            cursor: showControls ? "pointer" : "none",
-            WebkitUserSelect: "none",
-            userSelect: "none",
-            WebkitTouchCallout: "none",
-            touchAction: "none",
-          }}
-          aria-hidden="true"
-          {...secureHandlers}
+          aria-hidden
         />
 
-        {/* Additional security layers */}
-        <div className="absolute inset-0 z-40 pointer-events-none">
-          <div className="absolute top-0 left-0 w-1 h-1 bg-transparent" data-security="layer1" />
-          <div className="absolute top-0 right-0 w-1 h-1 bg-transparent" data-security="layer2" />
-          <div className="absolute bottom-0 left-0 w-1 h-1 bg-transparent" data-security="layer3" />
-          <div className="absolute bottom-0 right-0 w-1 h-1 bg-transparent" data-security="layer4" />
-        </div>
-
         {/* Corner masks */}
-        <div className="pointer-events-none absolute top-0 right-0 w-40 h-16 z-30 bg-gradient-to-l from-black/60 to-transparent" />
-        <div className="pointer-events-none absolute bottom-0 right-0 w-44 h-14 z-30 bg-gradient-to-l from-black/60 to-transparent" />
+        <div className="pointer-events-none absolute top-0 right-0 w-40 h-16 z-20 bg-gradient-to-l from-black/60 to-transparent" />
+        <div className="pointer-events-none absolute bottom-0 right-0 w-44 h-14 z-20 bg-gradient-to-l from-black/60 to-transparent" />
 
-        {/* Enhanced blocked notice */}
+        {/* Blocked toast */}
         <AnimatePresence>
           {showBlockedNotice && (
             <motion.div
-              initial={{ opacity: 0, y: -8, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.9 }}
-              className="absolute top-3 right-3 z-60 px-4 py-3 rounded-lg bg-red-900/90 text-white text-sm backdrop-blur-md flex items-center gap-3 shadow-xl border border-red-700/50"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="absolute top-3 right-3 z-40 px-3 py-2 rounded-md bg-black/80 text-white text-xs backdrop-blur-md flex items-center gap-2 shadow-lg"
             >
-              <Shield className="w-5 h-5 text-red-300" />
-              <div>
-                <div className="font-semibold">Content Protected</div>
-                <div className="text-xs text-red-200">Use player controls below</div>
-              </div>
+              <Shield className="w-4 h-4" />
+              Interactions disabled. Use controls below.
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Domain-lock overlay */}
         {blockedByDomain && (
-          <div className="absolute inset-0 z-70 flex items-center justify-center bg-black/90">
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90">
             <div className="text-center text-red-200 flex items-center gap-3 p-4 rounded-lg bg-black/60 shadow-lg">
               <AlertTriangle className="w-5 h-5" />
-              <span className="text-sm font-medium">Playback blocked on this domain.</span>
+              <span className="text-sm font-medium">
+                Playback blocked on this domain.
+              </span>
             </div>
           </div>
         )}
 
-        {/* All other overlays remain the same but with adjusted z-indices */}
+        {/* Waiting state */}
         {youtubeVideoId == null && !videoIdError && !blockedByDomain && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
             <div className="text-white/90 text-sm">Waiting for video…</div>
           </div>
         )}
 
+        {/* Bad ID */}
         {youtubeVideoId === "" && !videoIdError && !blockedByDomain && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
             <div className="flex items-center gap-3 text-red-200">
               <AlertTriangle className="w-5 h-5" />
-              <span className="text-sm font-medium">No YouTube link/ID provided.</span>
+              <span className="text-sm font-medium">
+                No YouTube link/ID provided.
+              </span>
             </div>
           </div>
         )}
 
+        {/* Thumbnail */}
         {!isReady && thumbnailUrl && !videoIdError && !blockedByDomain && (
           <img
             src={thumbnailUrl}
             alt="Video thumbnail"
-            className="absolute inset-0 w-full h-full object-cover opacity-80 pointer-events-none z-10"
+            className="absolute inset-0 w-full h-full object-cover opacity-80 pointer-events-none"
             draggable={false}
-            onDragStart={(e) => e.preventDefault()}
-            onContextMenu={(e) => e.preventDefault()}
-            style={{
-              WebkitUserSelect: "none",
-              userSelect: "none",
-            }}
           />
         )}
 
+        {/* Player host */}
+        <div id={hostId} ref={playerHostRef} className="w-full h-full" />
+
+        {/* Error */}
         {videoIdError && !blockedByDomain && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
             <div className="flex items-center gap-3 text-red-200">
@@ -796,6 +635,7 @@ export function VideoPlayer({
           </div>
         )}
 
+        {/* Watermark */}
         {!videoIdError && !blockedByDomain && (
           <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center opacity-10">
             <div className="text-white text-xs font-semibold tracking-widest rotate-[-20deg]">
@@ -804,6 +644,7 @@ export function VideoPlayer({
           </div>
         )}
 
+        {/* Big play icon */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{
@@ -817,13 +658,12 @@ export function VideoPlayer({
           </div>
         </motion.div>
 
-        {/* Enhanced Controls with better z-index management */}
+        {/* Controls */}
         <motion.div
           initial={{ opacity: 1 }}
           animate={{ opacity: showControls ? 1 : 0 }}
           transition={{ duration: 0.3 }}
-          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 z-45"
-          style={{ pointerEvents: showControls ? 'auto' : 'none' }}
+          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-4 z-40"
         >
           {/* Progress bar */}
           <div className="mb-4">
@@ -930,25 +770,19 @@ export function VideoPlayer({
         </motion.div>
 
         {/* Loading overlay */}
-        {!isReady && !videoIdError && youtubeVideoId != null && !blockedByDomain && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
-            <div className="text-white text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-              <p className="text-sm">Loading YouTube video…</p>
+        {!isReady &&
+          !videoIdError &&
+          youtubeVideoId != null &&
+          !blockedByDomain && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+              <div className="text-white text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                <p className="text-sm">Loading YouTube video…</p>
+              </div>
             </div>
-          </div>
-        )}
-
-        {/* Security watermark - invisible but present for additional protection */}
-        <div
-          className="absolute inset-0 pointer-events-none z-5"
-          style={{
-            background: 'repeating-linear-gradient(45deg, transparent, transparent 100px, rgba(0,0,0,0.001) 101px, rgba(0,0,0,0.001) 102px)',
-            mixBlendMode: 'multiply'
-          }}
-          data-security="watermark"
-        />
+          )}
       </div>
     </Card>
   );
 }
+
