@@ -74,7 +74,7 @@ function parseYouTubeId(input: string | undefined | null): string | null {
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2] as const;
 const ALLOWED_HOSTS_FALLBACK = [
   "pacelab-lms-web.vercel.app", // production Vercel app
-  "pacelab.in", // your custom domain (if used)
+  "lms.pacelab.in", // your custom domain (if used)
   "pacelab-api.onrender.com", // backend domain (if needed)
   "localhost",
   "127.0.0.1",
