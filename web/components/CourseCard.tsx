@@ -33,14 +33,22 @@ function getPosterForTitle(title?: string) {
     t.includes("django") ||
     t.includes("web apps")
   ) {
-    return "/Dfs.poster.png";
+    return "/Fc.poster.png";
   }
   if (t.includes("cyber") || t.includes("security") || t.includes("cybersecurity")) {
     return "/Cs.poster.png";
   }
+  if (
+    t.includes("ai") ||
+    t.includes("artificial intelligence") ||
+    t.includes("machine learning")
+  ) {
+    return "/Ai.poster.png";
+  }
 
-  return "/.meta.logo.png";
+  return "/meta.logo.png";
 }
+
 
 export default function CourseCard({ course, index }: { course: Course; index: number }) {
   const [imgError, setImgError] = useState(false);
