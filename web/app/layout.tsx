@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     template: `%s | ${BRAND}`,
   },
   description:
-    'Modern Learning Management System — interactive courses and analytics for learners and admins.',
+    'Pacelab LMS is a modern and efficient learning management platform with simple user management, easy course management, student chat support, and smooth video playback.',
   keywords: [
     'learning management system',
     'lms',
@@ -21,10 +21,13 @@ export const metadata: Metadata = {
     'training',
     'education',
     'Pacelab',
+    'user management',
+    'course management',
+    'student chat',
+    'video learning',
   ],
   applicationName: BRAND,
   authors: [{ name: 'Developed by Coxdo Solutions' }],
-  // Next.js Metadata type expects a singular 'creator' property (not 'creators')
   creator: 'Coxdo Solutions',
   publisher: 'Pacelab Pvt. Ltd. (Rental Owner)',
   metadataBase: new URL('https://lms.pacelab.in'),
@@ -39,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: BRAND,
     description:
-      'Modern Learning Management System — interactive courses, progress tracking and analytics for learners and admins.',
+      'Pacelab LMS — a modern, efficient learning management platform with user management, course tools, chat support, and smooth video playback.',
     url: 'https://lms.pacelab.in',
     siteName: BRAND,
     images: [
@@ -57,7 +60,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: BRAND,
     description:
-      'Modern Learning Management System — interactive courses, progress tracking and analytics for learners and admins.',
+      'Pacelab LMS — modern learning platform with user management, course tools, chat support, and smooth video playback.',
     images: ['https://lms.pacelab.in/meta.logo.png'],
     site: '@yourhandle',
   },
