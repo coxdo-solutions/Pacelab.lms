@@ -105,7 +105,6 @@ export function YouTubeVideoUploader({ onUploadSuccess }: Props) {
     <Card className="rounded-xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Youtube className="w-5 h-5 text-red-600" />
           Upload Lesson Video
         </CardTitle>
       </CardHeader>
@@ -156,5 +155,6 @@ export function YouTubeVideoUploader({ onUploadSuccess }: Props) {
     </Card>
   );
 }
+
 
 
