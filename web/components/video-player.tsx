@@ -519,10 +519,10 @@ export function VideoPlayer({
   } as const;
 
   return (
-    <Card className="relative bg-black rounded-xl shadow-lg overflow-hidden select-none">
+    <Card className="relative bg-black rounded-xl shadow-lg overflow-hidden select-none max-w-3xl mx-auto">
       <div
         ref={containerRef}
-        className="relative w-full aspect-video outline-none"
+        className="relative w-full aspect-video outline-none max-w-3xl mx-auto"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => isPlaying && setShowControls(false)}
         onTouchStart={(e) => {
@@ -537,6 +537,8 @@ export function VideoPlayer({
           userSelect: "none",
           WebkitTouchCallout: "none",
           touchAction: "none",
+          maxWidth: '768px',
+          margin: '0 auto',
         }}
         suppressHydrationWarning
         {...secureHandlers}
