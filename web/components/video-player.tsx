@@ -1,7 +1,3 @@
-// ===========================
-// components/video-player.tsx
-// ===========================
-
 "use client";
 
 import React, {
@@ -234,14 +230,8 @@ export function VideoPlayer({
       ) as HTMLIFrameElement | null;
       if (!iframe) return;
 
-      // Optional: keep this if you want to block clicks on iframe itself
-      // iframe.style.pointerEvents = "none";
-
       iframe.tabIndex = -1;
       iframe.setAttribute("aria-hidden", "true");
-
-      // REMOVE the referrerpolicy line completely
-      // iframe.setAttribute("referrerpolicy", "no-referrer");
 
       // Allow fullscreen + media controls
       iframe.setAttribute(
@@ -421,29 +411,81 @@ export function VideoPlayer({
     }, 3000);
   }
 
-  // Shield handlers: show "blocked" toast; single click play/pause, double click fullscreen
-  function handleShieldClick() {
-    showBlocked();
-    if (clickTimeoutRef.current) {
-      clearTimeout(clickTimeoutRef.current);
-      clickTimeoutRef.current = null;
-      toggleFullscreen();
-    } else {
-      clickTimeoutRef.current = setTimeout(() => {
-        togglePlay();
-        if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+  // Shield handlers - Fixed implementation
+  const handleShieldClick = useCallback((e: React.MouseEvent) => {
+    try {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      showBlocked();
+      
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
         clickTimeoutRef.current = null;
-      }, 200);
+        toggleFullscreen();
+      } else {
+        clickTimeoutRef.current = setTimeout(() => {
+          togglePlay();
+          if (clickTimeoutRef.current) {
+            clearTimeout(clickTimeoutRef.current);
+            clickTimeoutRef.current = null;
+          }
+        }, 200);
+      }
+    } catch (error) {
+      console.error("Shield click error:", error);
     }
-  }
+  }, [togglePlay]);
+
+  const handleShieldDoubleClick = useCallback((e: React.MouseEvent) => {
+    try {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      showBlocked();
+      
+      if (clickTimeoutRef.current) {
+        clearTimeout(clickTimeoutRef.current);
+        clickTimeoutRef.current = null;
+      }
+      
+      toggleFullscreen();
+    } catch (error) {
+      console.error("Shield double click error:", error);
+    }
+  }, []);
+
+  const handleShieldContextMenu = useCallback((e: React.MouseEvent) => {
+    try {
+      e.preventDefault();
+      e.stopPropagation();
+      showBlocked();
+    } catch (error) {
+      console.error("Shield context menu error:", error);
+    }
+  }, []);
+
+  const handleShieldTouchStart = useCallback((e: React.TouchEvent) => {
+    try {
+      e.preventDefault();
+      e.stopPropagation();
+      showBlocked();
+    } catch (error) {
+      console.error("Shield touch start error:", error);
+    }
+  }, []);
 
   function showBlocked() {
-    setShowBlockedNotice(true);
-    if (blockedToastTimer.current) clearTimeout(blockedToastTimer.current);
-    blockedToastTimer.current = setTimeout(
-      () => setShowBlockedNotice(false),
-      1300
-    );
+    try {
+      setShowBlockedNotice(true);
+      if (blockedToastTimer.current) clearTimeout(blockedToastTimer.current);
+      blockedToastTimer.current = setTimeout(
+        () => setShowBlockedNotice(false),
+        1300
+      );
+    } catch (error) {
+      console.error("Show blocked error:", error);
+    }
   }
 
   // Keyboard (our own; YT kb disabled)
@@ -489,7 +531,6 @@ export function VideoPlayer({
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTime, duration, volume, togglePlay]);
 
   useEffect(() => {
@@ -541,25 +582,18 @@ export function VideoPlayer({
         suppressHydrationWarning
         {...secureHandlers}
       >
-        {/* === TRANSPARENT SHIELD === */}
+        {/* === FIXED TRANSPARENT SHIELD === */}
         <div
-          className="absolute inset-0 z-30 bg-transparent cursor-not-allowed"
+          className="absolute inset-0 z-30 bg-transparent cursor-pointer"
           onClick={handleShieldClick}
-          onDoubleClick={(e) => {
-            e.preventDefault();
-            showBlocked();
-            toggleFullscreen();
-          }}
-          onContextMenu={(e) => {
-            e.preventDefault();
-            showBlocked();
-          }}
+          onDoubleClick={handleShieldDoubleClick}
+          onContextMenu={handleShieldContextMenu}
           onMouseDown={(e) => e.preventDefault()}
-          onTouchStart={(e) => {
-            e.preventDefault();
-            showBlocked();
-          }}
-          aria-hidden
+          onTouchStart={handleShieldTouchStart}
+          style={{ pointerEvents: 'auto' }}
+          role="button"
+          tabIndex={-1}
+          aria-label="Video interaction layer"
         />
 
         {/* Corner masks */}
@@ -785,4 +819,3 @@ export function VideoPlayer({
     </Card>
   );
 }
-
