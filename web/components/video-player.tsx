@@ -69,16 +69,15 @@ function parseYouTubeId(input: string | undefined | null): string | null {
 
 const SPEEDS = [1, 1.25, 1.5, 1.75, 2] as const;
 const ALLOWED_HOSTS_FALLBACK = [
-  "pacelab-lms-web.vercel.app", // production Vercel app
-  "pacelab.in", // your custom domain (if used)
-  "pacelab-api.onrender.com", // backend domain (if needed)
+  "pacelab-lms-web.vercel.app",
+  "pacelab.in",
+  "pacelab-api.onrender.com",
   "localhost",
   "127.0.0.1",
 ];
 
 function isAllowedHost(hostname: string) {
   if (!hostname) return false;
-  // allow all vercel preview subdomains automatically
   if (hostname.endsWith(".vercel.app")) return true;
   return ALLOWED_HOSTS_FALLBACK.includes(hostname);
 }
@@ -97,8 +96,9 @@ export function VideoPlayer({
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const blockedToastTimer = useRef<NodeJS.Timeout | null>(null);
 
-  const playerInitRef = useRef(false); // guard: prevent double init/races
-  const mountedRef = useRef(false); // track mount state
+  const playerInitRef = useRef(false);
+  const mountedRef = useRef(false);
+  const cleanupRef = useRef(false); // Add cleanup flag
 
   const [isReady, setIsReady] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -117,7 +117,8 @@ export function VideoPlayer({
     ? `https://img.youtube.com/vi/${resolvedId}/hqdefault.jpg`
     : null;
   const storageKey = `vp:${lessonId}`;
-  const hostId = useMemo(() => `yt-host-${lessonId}`, [lessonId]); // stable id so YT can attach reliably
+  // Use a more stable hostId that changes only when necessary
+  const hostId = useMemo(() => `yt-player-${lessonId}`, [lessonId]);
 
   useEffect(() => {
     try {
@@ -149,60 +150,118 @@ export function VideoPlayer({
   // Track mount
   useEffect(() => {
     mountedRef.current = true;
+    cleanupRef.current = false;
     return () => {
       mountedRef.current = false;
+      cleanupRef.current = true;
     };
   }, []);
 
-  // Init / re-init (race-proof)
+  // Improved cleanup function
+  function destroyPlayer() {
+    try {
+      clearProgressInterval();
+      if (playerRef.current) {
+        // Check if player has iframe before destroying
+        const iframe = playerRef.current.getIframe?.();
+        if (iframe && iframe.parentNode) {
+          playerRef.current.destroy?.();
+        }
+        playerRef.current = null;
+      }
+      playerInitRef.current = false;
+    } catch (error) {
+      console.warn("Error during player cleanup:", error);
+      playerRef.current = null;
+      playerInitRef.current = false;
+    }
+  }
+
+  // Improved initialization with better error handling
   useEffect(() => {
-    clearProgressInterval();
+    // Clean up previous player first
+    destroyPlayer();
     setIsReady(false);
     setIsPlaying(false);
     setCurrentTime(0);
     setDuration(0);
     setVideoIdError(null);
-    playerInitRef.current = false; // allow fresh init after deps change
 
-    if (blockedByDomain) return;
+    if (blockedByDomain || cleanupRef.current) return;
     if (youtubeVideoId == null) return;
     if (!resolvedId) {
       setVideoIdError("Invalid YouTube video link or ID.");
       return;
     }
 
-    const tryInit = () => {
-      if (!mountedRef.current) return;
-      if (playerInitRef.current) return;
-      const hostEl = document.getElementById(hostId);
-      if (!hostEl) return;
-      if (!window.YT || !window.YT.Player) return;
-      playerInitRef.current = true; // lock before constructing
-      initPlayer(resolvedId);
+    const initAttempts = {
+      count: 0,
+      maxAttempts: 20, // Reduced from infinite polling
     };
 
-    // Poll until both host element and YT API are ready
-    const poll = setInterval(() => {
-      tryInit();
-      if (playerInitRef.current) clearInterval(poll);
-    }, 100);
+    const tryInit = () => {
+      if (!mountedRef.current || cleanupRef.current) return false;
+      if (playerInitRef.current) return false;
+      
+      const hostEl = document.getElementById(hostId);
+      if (!hostEl) {
+        console.warn(`Host element not found: ${hostId}`);
+        return false;
+      }
+      
+      if (!window.YT || !window.YT.Player) {
+        return false;
+      }
 
-    return () => clearInterval(poll);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+      // Ensure the host element is clean
+      hostEl.innerHTML = '';
+      
+      playerInitRef.current = true;
+      initPlayer(resolvedId);
+      return true;
+    };
+
+    const poll = setInterval(() => {
+      initAttempts.count++;
+      
+      if (tryInit() || initAttempts.count >= initAttempts.maxAttempts) {
+        clearInterval(poll);
+        if (initAttempts.count >= initAttempts.maxAttempts && !playerInitRef.current) {
+          setVideoIdError("Failed to initialize YouTube player after multiple attempts.");
+        }
+      }
+    }, 150); // Slightly longer interval
+
+    return () => {
+      clearInterval(poll);
+      destroyPlayer();
+    };
   }, [resolvedId, youtubeVideoId, blockedByDomain, hostId]);
 
   function initPlayer(id: string) {
     try {
-      // IMPORTANT: pass the host **id string** so YT manages DOM in-place reliably
+      const hostEl = document.getElementById(hostId);
+      if (!hostEl || !mountedRef.current || cleanupRef.current) {
+        playerInitRef.current = false;
+        return;
+      }
+
+      // Double-check the element is still in the DOM
+      if (!document.contains(hostEl)) {
+        console.warn("Host element no longer in DOM during init");
+        playerInitRef.current = false;
+        return;
+      }
+
       playerRef.current = new window.YT.Player(hostId, {
         height: "100%",
         width: "100%",
         videoId: id,
         host: "https://www.youtube-nocookie.com",
         playerVars: {
-          controls: 0, // no native controls
-          disablekb: 1, // block YT keyboard
-          fs: 0, // hide YT fullscreen button
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
           modestbranding: 1,
           rel: 0,
           cc_load_policy: 0,
@@ -217,9 +276,9 @@ export function VideoPlayer({
         },
       });
     } catch (e) {
-      playerInitRef.current = false; // allow retry
+      console.error("Player initialization error:", e);
+      playerInitRef.current = false;
       setVideoIdError("Failed to initialize YouTube player.");
-      console.error(e);
     }
   }
 
@@ -232,61 +291,74 @@ export function VideoPlayer({
 
       iframe.tabIndex = -1;
       iframe.setAttribute("aria-hidden", "true");
-
-      // Allow fullscreen + media controls
       iframe.setAttribute(
         "allow",
         "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
       );
       iframe.setAttribute("allowfullscreen", "true");
-
-      // Loosen sandbox just enough
       iframe.setAttribute(
         "sandbox",
         "allow-scripts allow-same-origin allow-presentation allow-popups"
       );
-
       iframe.setAttribute("draggable", "false");
-    } catch {}
+    } catch (error) {
+      console.warn("Error hardening iframe:", error);
+    }
   }
 
   function onPlayerReady(e: any) {
-    setIsReady(true);
-    const d = e.target.getDuration?.() ?? 0;
-    const v = e.target.getVolume?.() ?? 100;
-    setDuration(d);
-    setVolume(v);
-    setIsMuted(e.target.isMuted?.() ?? false);
-    hardenIframe();
-
-    // restore progress
+    if (!mountedRef.current || cleanupRef.current) return;
+    
     try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const { t } = JSON.parse(saved) as { t: number; d: number; at: number };
-        if (typeof t === "number" && t > 0 && t < d - 5) {
-          e.target.seekTo?.(t, true);
-          setCurrentTime(t);
-        }
-      }
-    } catch {}
+      setIsReady(true);
+      const d = e.target.getDuration?.() ?? 0;
+      const v = e.target.getVolume?.() ?? 100;
+      setDuration(d);
+      setVolume(v);
+      setIsMuted(e.target.isMuted?.() ?? false);
+      hardenIframe();
 
-    e.target.setPlaybackRate?.(SPEEDS[speedIndex]);
-    startProgressInterval();
+      // Restore progress
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          const { t } = JSON.parse(saved) as { t: number; d: number; at: number };
+          if (typeof t === "number" && t > 0 && t < d - 5) {
+            e.target.seekTo?.(t, true);
+            setCurrentTime(t);
+          }
+        }
+      } catch (storageError) {
+        console.warn("Error restoring progress:", storageError);
+      }
+
+      e.target.setPlaybackRate?.(SPEEDS[speedIndex]);
+      startProgressInterval();
+    } catch (error) {
+      console.error("Error in onPlayerReady:", error);
+    }
   }
 
   function onPlayerStateChange(e: any) {
-    const playing = e?.data === window.YT.PlayerState.PLAYING;
-    setIsPlaying(playing);
-    if (playing) {
-      setShowControls(false);
-      startProgressInterval();
-    } else {
-      setShowControls(true);
+    if (!mountedRef.current || cleanupRef.current) return;
+    
+    try {
+      const playing = e?.data === window.YT.PlayerState.PLAYING;
+      setIsPlaying(playing);
+      if (playing) {
+        setShowControls(false);
+        startProgressInterval();
+      } else {
+        setShowControls(true);
+      }
+    } catch (error) {
+      console.error("Error in onPlayerStateChange:", error);
     }
   }
 
   function onPlayerError(e: any) {
+    if (!mountedRef.current) return;
+    
     setVideoIdError(
       "Unable to load this YouTube video (invalid ID or restricted)."
     );
@@ -296,20 +368,34 @@ export function VideoPlayer({
   function startProgressInterval() {
     clearProgressInterval();
     progressIntervalRef.current = setInterval(() => {
+      if (!mountedRef.current || cleanupRef.current) {
+        clearProgressInterval();
+        return;
+      }
+      
       const p = playerRef.current;
       if (!p?.getCurrentTime || !p?.getDuration) return;
-      const current = p.getCurrentTime() ?? 0;
-      const total = p.getDuration() ?? 0;
-      setCurrentTime(current);
-      setDuration(total);
+      
       try {
-        localStorage.setItem(
-          storageKey,
-          JSON.stringify({ t: current, d: total, at: Date.now() })
-        );
-      } catch {}
-      const completed = total > 0 && current / total >= 0.95;
-      onProgress({ currentTime: current, duration: total, completed });
+        const current = p.getCurrentTime() ?? 0;
+        const total = p.getDuration() ?? 0;
+        setCurrentTime(current);
+        setDuration(total);
+        
+        try {
+          localStorage.setItem(
+            storageKey,
+            JSON.stringify({ t: current, d: total, at: Date.now() })
+          );
+        } catch (storageError) {
+          console.warn("Error saving progress:", storageError);
+        }
+        
+        const completed = total > 0 && current / total >= 0.95;
+        onProgress({ currentTime: current, duration: total, completed });
+      } catch (error) {
+        console.warn("Error in progress interval:", error);
+      }
     }, 1000);
   }
 
@@ -320,51 +406,60 @@ export function VideoPlayer({
     }
   }
 
-  function destroyPlayer() {
-    try {
-      const p = playerRef.current;
-      // only destroy if iframe is attached; avoids mid-mount races
-      if (p?.getIframe && p.getIframe()) {
-        p.destroy?.();
-      }
-    } catch {}
-    playerRef.current = null;
-  }
-
   const togglePlay = useCallback(() => {
     const p = playerRef.current;
-    if (!p) return;
-    if (isPlaying) p.pauseVideo?.();
-    else p.playVideo?.();
+    if (!p || !mountedRef.current) return;
+    
+    try {
+      if (isPlaying) p.pauseVideo?.();
+      else p.playVideo?.();
+    } catch (error) {
+      console.warn("Error toggling play:", error);
+    }
   }, [isPlaying]);
 
   function handleSeek(value: number[]) {
     const p = playerRef.current;
-    if (!p) return;
-    const t = value?.[0] ?? 0;
-    p.seekTo?.(t, true);
-    setCurrentTime(t);
+    if (!p || !mountedRef.current) return;
+    
+    try {
+      const t = value?.[0] ?? 0;
+      p.seekTo?.(t, true);
+      setCurrentTime(t);
+    } catch (error) {
+      console.warn("Error seeking:", error);
+    }
   }
 
   function handleVolumeChange(value: number[]) {
     const p = playerRef.current;
-    if (!p) return;
-    const vol = value?.[0] ?? 0;
-    p.setVolume?.(vol);
-    setVolume(vol);
-    setIsMuted(vol === 0);
+    if (!p || !mountedRef.current) return;
+    
+    try {
+      const vol = value?.[0] ?? 0;
+      p.setVolume?.(vol);
+      setVolume(vol);
+      setIsMuted(vol === 0);
+    } catch (error) {
+      console.warn("Error changing volume:", error);
+    }
   }
 
   function toggleMute() {
     const p = playerRef.current;
-    if (!p) return;
-    if (isMuted) {
-      p.unMute?.();
-      setIsMuted(false);
-      setVolume(p.getVolume?.() ?? 100);
-    } else {
-      p.mute?.();
-      setIsMuted(true);
+    if (!p || !mountedRef.current) return;
+    
+    try {
+      if (isMuted) {
+        p.unMute?.();
+        setIsMuted(false);
+        setVolume(p.getVolume?.() ?? 100);
+      } else {
+        p.mute?.();
+        setIsMuted(true);
+      }
+    } catch (error) {
+      console.warn("Error toggling mute:", error);
     }
   }
 
@@ -375,21 +470,28 @@ export function VideoPlayer({
       null
     );
   }
+  
   function requestFullscreen(el: Element) {
     const anyEl = el as any;
     if (anyEl.requestFullscreen) return anyEl.requestFullscreen();
     if (anyEl.webkitRequestFullscreen) return anyEl.webkitRequestFullscreen();
   }
+  
   function exitFullscreen() {
     const anyDoc = document as any;
     if (document.exitFullscreen) return document.exitFullscreen();
     if (anyDoc.webkitExitFullscreen) return anyDoc.webkitExitFullscreen();
   }
+  
   function toggleFullscreen() {
-    const container = containerRef.current;
-    if (!container) return;
-    if (!getFullscreenElement()) requestFullscreen(container);
-    else exitFullscreen();
+    try {
+      const container = containerRef.current;
+      if (!container) return;
+      if (!getFullscreenElement()) requestFullscreen(container);
+      else exitFullscreen();
+    } catch (error) {
+      console.warn("Error toggling fullscreen:", error);
+    }
   }
 
   function formatTime(time: number) {
@@ -411,7 +513,6 @@ export function VideoPlayer({
     }, 3000);
   }
 
-  // Shield handlers - Fixed implementation
   const handleShieldClick = useCallback((e: React.MouseEvent) => {
     try {
       e.preventDefault();
@@ -488,58 +589,66 @@ export function VideoPlayer({
     }
   }
 
-  // Keyboard (our own; YT kb disabled)
+  // Keyboard handlers
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!containerRef.current) return;
+      if (!containerRef.current || !mountedRef.current) return;
       const hasFocus = containerRef.current.contains(document.activeElement);
       if (!hasFocus) return;
-      switch (e.key.toLowerCase()) {
-        case " ":
-        case "k":
-          e.preventDefault();
-          togglePlay();
-          break;
-        case "m":
-          e.preventDefault();
-          toggleMute();
-          break;
-        case "f":
-          e.preventDefault();
-          toggleFullscreen();
-          break;
-        case "arrowleft":
-          e.preventDefault();
-          playerRef.current?.seekTo?.(Math.max(0, currentTime - 5), true);
-          break;
-        case "arrowright":
-          e.preventDefault();
-          playerRef.current?.seekTo?.(
-            Math.min(duration, currentTime + 5),
-            true
-          );
-          break;
-        case "arrowup":
-          e.preventDefault();
-          handleVolumeChange([Math.min(100, (volume ?? 0) + 5)]);
-          break;
-        case "arrowdown":
-          e.preventDefault();
-          handleVolumeChange([Math.max(0, (volume ?? 0) - 5)]);
-          break;
+      
+      try {
+        switch (e.key.toLowerCase()) {
+          case " ":
+          case "k":
+            e.preventDefault();
+            togglePlay();
+            break;
+          case "m":
+            e.preventDefault();
+            toggleMute();
+            break;
+          case "f":
+            e.preventDefault();
+            toggleFullscreen();
+            break;
+          case "arrowleft":
+            e.preventDefault();
+            playerRef.current?.seekTo?.(Math.max(0, currentTime - 5), true);
+            break;
+          case "arrowright":
+            e.preventDefault();
+            playerRef.current?.seekTo?.(
+              Math.min(duration, currentTime + 5),
+              true
+            );
+            break;
+          case "arrowup":
+            e.preventDefault();
+            handleVolumeChange([Math.min(100, (volume ?? 0) + 5)]);
+            break;
+          case "arrowdown":
+            e.preventDefault();
+            handleVolumeChange([Math.max(0, (volume ?? 0) - 5)]);
+            break;
+        }
+      } catch (error) {
+        console.warn("Error in keyboard handler:", error);
       }
     };
+    
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [currentTime, duration, volume, togglePlay]);
 
+  // Cleanup effect
   useEffect(() => {
     return () => {
       if (hideControlsTimeoutRef.current)
         clearTimeout(hideControlsTimeoutRef.current);
       if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
       if (blockedToastTimer.current) clearTimeout(blockedToastTimer.current);
-      clearProgressInterval();
+      
+      cleanupRef.current = true;
       destroyPlayer();
     };
   }, []);
@@ -549,7 +658,9 @@ export function VideoPlayer({
     setSpeedIndex(next);
     try {
       playerRef.current?.setPlaybackRate?.(SPEEDS[next]);
-    } catch {}
+    } catch (error) {
+      console.warn("Error changing speed:", error);
+    }
   }
 
   const secureHandlers = {
@@ -582,7 +693,7 @@ export function VideoPlayer({
         suppressHydrationWarning
         {...secureHandlers}
       >
-        {/* === FIXED TRANSPARENT SHIELD === */}
+        {/* Transparent Shield */}
         <div
           className="absolute inset-0 z-30 bg-transparent cursor-pointer"
           onClick={handleShieldClick}
@@ -656,12 +767,12 @@ export function VideoPlayer({
           />
         )}
 
-        {/* Player host */}
+        {/* Player host - Simplified and more stable */}
         <div 
           id={hostId} 
           ref={playerHostRef} 
           className="w-full h-full"
-          key={`${hostId}-${resolvedId || 'empty'}`} // Force re-render on video change
+          style={{ minHeight: '100%', minWidth: '100%' }}
         />
 
         {/* Error */}
