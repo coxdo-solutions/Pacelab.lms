@@ -541,31 +541,26 @@ export function VideoPlayer({
         suppressHydrationWarning
         {...secureHandlers}
       >
-        {/* Player host */}
-        <div id={hostId} ref={playerHostRef} className="w-full h-full" />
-
-        {/* === TRANSPARENT SHIELD (overlays the video, not a child of the YouTube iframe) === */}
-        {!showControls && (
-          <div
-            className="absolute inset-0 z-30 bg-transparent cursor-not-allowed"
-            onClick={handleShieldClick}
-            onDoubleClick={(e) => {
-              e.preventDefault();
-              showBlocked();
-              toggleFullscreen();
-            }}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              showBlocked();
-            }}
-            onMouseDown={(e) => e.preventDefault()}
-            onTouchStart={(e) => {
-              e.preventDefault();
-              showBlocked();
-            }}
-            aria-hidden
-          />
-        )}
+        {/* === TRANSPARENT SHIELD === */}
+        <div
+          className="absolute inset-0 z-30 bg-transparent cursor-not-allowed"
+          onClick={handleShieldClick}
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            showBlocked();
+            toggleFullscreen();
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            showBlocked();
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            showBlocked();
+          }}
+          aria-hidden
+        />
 
         {/* Corner masks */}
         <div className="pointer-events-none absolute top-0 right-0 w-40 h-16 z-20 bg-gradient-to-l from-black/60 to-transparent" />
