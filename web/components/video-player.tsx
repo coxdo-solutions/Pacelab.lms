@@ -541,6 +541,9 @@ export function VideoPlayer({
         suppressHydrationWarning
         {...secureHandlers}
       >
+        {/* Player host */}
+        <div id={hostId} ref={playerHostRef} className="w-full h-full" />
+
         {/* === TRANSPARENT SHIELD === */}
         <div
           className="absolute inset-0 z-30 bg-transparent cursor-not-allowed"
