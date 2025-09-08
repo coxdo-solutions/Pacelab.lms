@@ -606,7 +606,7 @@ export function VideoPlayer({
             <div className="flex items-center gap-3 text-red-200">
               <AlertTriangle className="w-5 h-5" />
               <span className="text-sm font-medium">
-                No YouTube link/ID provided.
+                No Video link/ID provided.
               </span>
             </div>
           </div>
@@ -777,7 +777,7 @@ export function VideoPlayer({
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
               <div className="text-white text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                <p className="text-sm">Loading YouTube video…</p>
+                <p className="text-sm">Loading Video…</p>
               </div>
             </div>
           )}
