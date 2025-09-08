@@ -541,7 +541,10 @@ export function VideoPlayer({
         suppressHydrationWarning
         {...secureHandlers}
       >
-        {/* === TRANSPARENT SHIELD === */}
+        {/* Player host */}
+        <div id={hostId} ref={playerHostRef} className="w-full h-full" />
+
+        {/* === TRANSPARENT SHIELD (overlays the video, not a child of the YouTube iframe) === */}
         <div
           className="absolute inset-0 z-30 bg-transparent cursor-pointer"
           onClick={handleShieldClick}
@@ -616,9 +619,6 @@ export function VideoPlayer({
             draggable={false}
           />
         )}
-
-        {/* Player host */}
-        <div id={hostId} ref={playerHostRef} className="w-full h-full" />
 
         {/* Error */}
         {videoIdError && !blockedByDomain && (
