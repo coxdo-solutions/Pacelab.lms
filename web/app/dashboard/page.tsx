@@ -1,129 +1,22 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 
 import { useAuth } from "@/lib/auth-context";
 import { Navbar } from "@/components/navbar";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Clock, PlayCircle, Trophy } from "lucide-react";
-
-interface Course {
-  id: string;
-  title: string;
-  description: string;
-  thumbnail?: string | null;
-  progress: number;
-  totalLessons: number;
-  completedLessons: number;
-  duration: string;
-  expiresAt?: string | null;
-}
-
-function getPosterForTitle(title?: string) {
-  if (!title) return "/.meta.logo.png";
-  const t = title.toLowerCase();
-
-  if (t.includes("ev") || t.includes("electric") || t.includes("workshop")) {
-    return "/Ev.poster.png";
-  }
-  if (
-    t.includes("full stack") ||
-    t.includes("full-stack") ||
-    t.includes("django") ||
-    t.includes("web apps")
-  ) {
-    return "/Dfc.poster.png";
-  }
-  if (t.includes("cyber") || t.includes("security") || t.includes("cybersecurity")) {
-    return "/Cs.poster.png";
-  }
-
-  return "/.meta.logo.png";
-}
-
-export function CourseCard({ course, index }: { course: Course; index: number }) {
-  const [imgError, setImgError] = useState(false);
-  const posterSrc = getPosterForTitle(course.title);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12, scale: 0.995 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: index * 0.04, type: "spring", stiffness: 120 }}
-      whileHover={{ translateY: -8, scale: 1.01 }}
-      className="group"
-    >
-      <Card className="rounded-2xl overflow-hidden border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-lg">
-        {/* Thumbnail */}
-        <div className="relative w-full h-44 sm:h-52 md:h-56 lg:h-48 overflow-hidden bg-gray-50">
-          <Image
-            src={imgError ? "/.meta.logo.png" : posterSrc}
-            alt={course.title}
-            fill
-            sizes="(min-width:1024px) 33vw, (min-width:768px) 50vw, 100vw"
-            className="object-cover"
-            onError={() => setImgError(true)}
-            referrerPolicy="no-referrer"
-            priority={false}
-          />
-
-          {/* Duration pill */}
-          <div className="absolute top-3 left-3 bg-white/90 px-3 py-1 rounded-full text-xs font-medium text-gray-800 border border-gray-100">
-            {course.duration}
-          </div>
-        </div>
-
-        <CardContent className="p-5 space-y-3">
-          <h3 className="font-semibold text-lg md:text-xl leading-tight text-gray-900 group-hover:text-[#0C1838] transition-colors">
-            {course.title}
-          </h3>
-
-          <p className="text-sm text-gray-600 line-clamp-3">{course.description}</p>
-
-          {/* Meta */}
-          <div className="flex items-center justify-between text-sm text-gray-600 mt-2">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-gray-50 border border-gray-100 text-xs">
-                <BookOpen className="w-4 h-4" />
-                <span>{course.totalLessons ?? 0} lessons</span>
-              </span>
-
-              <span className="inline-flex items-center gap-2 px-2 py-1 rounded-md bg-gray-50 border border-gray-100 text-xs">
-                <PlayCircle className="w-4 h-4" />
-                <span>{course.completedLessons ?? 0} watched</span>
-              </span>
-            </div>
-
-            <div className="text-xs text-gray-500">
-              {course.expiresAt ? `Expires ${new Date(course.expiresAt).toLocaleDateString()}` : ""}
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="mt-3">
-            <Link href={`/course/${course.id}`}>
-              <Button className="w-full rounded-xl bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white px-4 py-2 shadow-sm hover:shadow-md transition-transform hover:scale-105">
-                {course.progress === 0 ? "Start Course" : "Open Course"}
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-}
+import CourseCard, { Course as CourseType } from "@/components/CourseCard";
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
 
   const API = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") || "http://localhost:4000";
 
-  const fetchStudentCourses = async (): Promise<Course[]> => {
+  const fetchStudentCourses = async (): Promise<CourseType[]> => {
     if (!user?.id || !user?.token) return [];
     const res = await fetch(`${API}/users/${user.id}/courses`, {
       method: "GET",
@@ -150,7 +43,7 @@ export default function DashboardPage() {
     data: courses = [],
     isLoading,
     error,
-  } = useQuery<Course[]>({
+  } = useQuery<CourseType[]>({
     queryKey: ["student-courses", user?.id],
     queryFn: fetchStudentCourses,
     enabled: !!user?.id && !!user?.token,
@@ -236,10 +129,7 @@ export default function DashboardPage() {
                   "Mentorship & Motivation",
                   "Guaranteed Quality & Support",
                 ].map((f, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm font-medium text-gray-800"
-                  >
+                  <span key={i} className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm font-medium text-gray-800">
                     {f}
                   </span>
                 ))}
@@ -248,14 +138,7 @@ export default function DashboardPage() {
 
             <div className="w-full md:w-1/2 flex justify-center order-1 md:order-2 z-10">
               <div className="relative w-[260px] h-[340px] sm:w-[300px] sm:h-[380px] md:w-[360px] md:h-[460px] rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
-                <Image
-                  src="/pacelab.poster.jpg"
-                  alt="Programme poster"
-                  width={720}
-                  height={920}
-                  className="object-cover w-full h-full"
-                  priority
-                />
+                <Image src="/pacelab.poster.jpg" alt="Programme poster" width={720} height={920} className="object-cover w-full h-full" priority />
                 <div className="absolute -bottom-4 -right-4 w-12 h-12 rounded-full opacity-20 blur-md bg-gradient-to-br from-[#06b6d4] to-[#7c3aed]"></div>
               </div>
             </div>
@@ -270,31 +153,23 @@ export default function DashboardPage() {
           </div>
 
           {error ? (
-            <div className="p-6 rounded-xl bg-red-50 text-red-700 border border-red-200 text-sm">
-              Error loading courses: {(error as Error).message}
-            </div>
+            <div className="p-6 rounded-xl bg-red-50 text-red-700 border border-red-200 text-sm">Error loading courses: {(error as Error).message}</div>
           ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-xl h-56 bg-gray-100 animate-pulse" />
-              ))}
+              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="rounded-xl h-56 bg-gray-100 animate-pulse" />)}
             </div>
           ) : courses.length === 0 ? (
             <div className="rounded-2xl border border-dashed p-10 text-center text-gray-600">
               <p className="text-base">You haven’t enrolled in any courses yet.</p>
               <div className="mt-5">
                 <Link href="/catalog">
-                  <Button className="rounded-lg bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white px-6 py-2 shadow hover:shadow-md transition">
-                    Browse Courses
-                  </Button>
+                  <Button className="rounded-lg bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white px-6 py-2 shadow hover:shadow-md transition">Browse Courses</Button>
                 </Link>
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {courses.map((course, index) => (
-                <CourseCard key={course.id} course={course} index={index} />
-              ))}
+              {courses.map((course, index) => <CourseCard key={course.id} course={course} index={index} />)}
             </div>
           )}
         </section>
@@ -308,61 +183,41 @@ export default function DashboardPage() {
             <p className="mt-3 text-sm leading-relaxed">
               55/1605, Kadavanthra, Kochi, Kerala - 682020
               <br />
-              P:{" "}
-              <a href="tel:+918075090098" className="underline">
-                8075090098
-              </a>
+              P:{" "}<a href="tel:+918075090098" className="underline">8075090098</a>
               <br />
-              E:{" "}
-              <a href="mailto:info@pacelab.in" className="underline">
-                info@pacelab.in
-              </a>
+              E:{" "}<a href="mailto:info@pacelab.in" className="underline">info@pacelab.in</a>
             </p>
             <div className="mt-4">
-              <Link href="https://www.pacelab.in" target="_blank" rel="noreferrer" className="underline">
-                www.pacelab.in
-              </Link>
+              <Link href="https://www.pacelab.in" target="_blank" rel="noreferrer" className="underline">www.pacelab.in</Link>
             </div>
           </div>
 
           <div>
             <h4 className="text-lg font-semibold">Quick Links</h4>
             <ul className="mt-3 space-y-2">
-              <li>
-                <Link href="/about" className="hover:underline">About this programme</Link>
-              </li>
-              <li>
-                <Link href="/catalog" className="hover:underline">Courses</Link>
-              </li>
-              <li>
-                <Link href="/contact" className="hover:underline">Contact us</Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="hover:underline">Privacy Policy</Link>
-              </li>
+              <li><Link href="/about" className="hover:underline">About this programme</Link></li>
+              <li><Link href="/catalog" className="hover:underline">Courses</Link></li>
+              <li><Link href="/contact" className="hover:underline">Contact us</Link></li>
+              <li><Link href="/privacy" className="hover:underline">Privacy Policy</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="text-lg font-semibold">Contact</h4>
-            <p className="mt-3 text-sm">
-              For programme enquiries, write to{" "}
-              <a href="mailto:info@pacelab.in" className="underline">info@pacelab.in</a>
-            </p>
+            <p className="mt-3 text-sm">For programme enquiries, write to <a href="mailto:info@pacelab.in" className="underline">info@pacelab.in</a></p>
             <form className="mt-4 flex gap-2" onSubmit={(e) => e.preventDefault()}>
               <input aria-label="Email" placeholder="you@domain.com" className="flex-1 rounded-xl border px-4 py-2 text-gray-900" />
               <Button className="rounded-xl bg-white text-[#0C1838] hover:bg-gray-100">Subscribe</Button>
             </form>
 
-            <div className="mt-6 text-xs text-white/80">
-              © {new Date().getFullYear()} PaceLab Learning Platform — Powered by Coxdo Solutions
-            </div>
+            <div className="mt-6 text-xs text-white/80">© {new Date().getFullYear()} PaceLab Learning Platform — Powered by Coxdo Solutions</div>
           </div>
         </div>
       </footer>
     </div>
   );
 }
+
 
 
 
