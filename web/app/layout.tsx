@@ -12,7 +12,8 @@ export const metadata: Metadata = {
     default: BRAND,
     template: `%s | ${BRAND}`,
   },
-  description: 'Modern Learning Management System — interactive courses, progress tracking and analytics for learners and admins.',
+  description:
+    'Modern Learning Management System — interactive courses and analytics for learners and admins.',
   keywords: [
     'learning management system',
     'lms',
@@ -23,7 +24,8 @@ export const metadata: Metadata = {
   ],
   applicationName: BRAND,
   authors: [{ name: 'Developed by Coxdo Solutions' }],
-  creators: [{ name: 'Coxdo Solutions' }],
+  // Next.js Metadata type expects a singular 'creator' property (not 'creators')
+  creator: 'Coxdo Solutions',
   publisher: 'Pacelab Pvt. Ltd. (Rental Owner)',
   metadataBase: new URL('https://lms.pacelab.in'),
   alternates: {
@@ -32,11 +34,12 @@ export const metadata: Metadata = {
   icons: {
     icon: '/meta.logo.png',
     shortcut: '/meta.logo.png',
-    apple: '/meta.logo.png',
+    apple: '/apple-touch-icon.png',
   },
   openGraph: {
     title: BRAND,
-    description: 'Modern Learning Management System — interactive courses, progress tracking and analytics for learners and admins.',
+    description:
+      'Modern Learning Management System — interactive courses, progress tracking and analytics for learners and admins.',
     url: 'https://lms.pacelab.in',
     siteName: BRAND,
     images: [
@@ -53,7 +56,8 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: BRAND,
-    description: 'Modern Learning Management System — interactive courses, progress tracking and analytics for learners and admins.',
+    description:
+      'Modern Learning Management System — interactive courses, progress tracking and analytics for learners and admins.',
     images: ['https://lms.pacelab.in/meta.logo.png'],
     site: '@yourhandle',
   },
@@ -86,7 +90,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msapplication-TileImage" content="/meta.logo.png" />
         <meta name="msapplication-TileColor" content="#ffffff" />
         <meta name="theme-color" content="#ffffff" />
-        
+
+        {/* Apple Touch Icons for iOS */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+        {/* Favicons */}
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+
+        {/* Author meta (for legacy/user agents) */}
+        <meta name="author" content="Developed by Coxdo Solutions | Rental Owner: Pacelab Pvt. Ltd." />
       </head>
 
       <body className={`${inter.className} antialiased`}>
@@ -95,5 +108,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
-
 
