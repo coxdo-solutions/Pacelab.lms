@@ -613,7 +613,7 @@ export function VideoPlayer({ youtubeVideoId, lessonId, onProgress }: VideoPlaye
           <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-20">
             <div className="flex items-center gap-3 text-red-200">
               <AlertTriangle className="w-5 h-5" />
-              <span className="text-sm font-medium">No YouTube link/ID provided.</span>
+              <span className="text-sm font-medium">No link/ID provided.</span>
             </div>
           </div>
         )}
@@ -691,7 +691,7 @@ export function VideoPlayer({ youtubeVideoId, lessonId, onProgress }: VideoPlaye
           <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
             <div className="text-white text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-              <p>Loading YouTube video…</p>
+              <p>Loading Video…</p>
             </div>
           </div>
         )}
