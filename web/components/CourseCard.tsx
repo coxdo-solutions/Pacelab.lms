@@ -33,7 +33,7 @@ function getPosterForTitle(title?: string) {
     t.includes("django") ||
     t.includes("web apps")
   ) {
-    return "/Fc.poster.png";
+    return "/Dfs.poster.png";
   }
   if (t.includes("cyber") || t.includes("security") || t.includes("cybersecurity")) {
     return "/Cs.poster.png";
