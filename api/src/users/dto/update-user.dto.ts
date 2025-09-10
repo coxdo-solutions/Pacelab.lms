@@ -1,22 +1,43 @@
-import { IsEmail, IsOptional, IsString, IsEnum, IsArray, IsUUID } from 'class-validator';
-import { Role, UserStatus } from '@prisma/client';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  IsEnum,
+  IsArray,
+  IsUUID,
+} from 'class-validator';
+import { Role } from './create-user.dto'; // reuse Role enum
+
+// Define UserStatus manually
+export enum UserStatus {
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  BANNED = 'BANNED',
+}
 
 export class UpdateUserDto {
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   name?: string;
 
-  @IsOptional() @IsEmail()
+  @IsOptional()
+  @IsEmail()
   email?: string;
 
-  @IsOptional() @IsString()
+  @IsOptional()
+  @IsString()
   password?: string;
 
-  @IsOptional() @IsEnum(Role)
+  @IsOptional()
+  @IsEnum(Role)
   role?: Role;
 
-  @IsOptional() @IsEnum(UserStatus)
+  @IsOptional()
+  @IsEnum(UserStatus)
   status?: UserStatus;
 
-  @IsOptional() @IsArray() @IsUUID('4', { each: true })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
   assignedCourseIds?: string[];
 }
