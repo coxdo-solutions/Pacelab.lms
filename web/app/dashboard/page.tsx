@@ -107,7 +107,7 @@ export default function DashboardPage() {
 
                 {/* gradient headline: keep as inline-block so descenders render correctly */}
                 <span
-                  className="mt-1 text-3xl sm:text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent inline-block"
+                  className="mt-1 text-3xl sm:text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent"
                   style={{
                     backgroundImage:
                       "linear-gradient(90deg, #0C1838 0%, #1E2A78 50%, #2B0B3A 100%)",
@@ -245,6 +245,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
