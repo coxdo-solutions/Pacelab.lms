@@ -95,50 +95,78 @@ export default function DashboardPage() {
       <main className="container mx-auto px-4 py-10 flex-1">
         {/* Hero / About Section */}
         <section className="mb-12">
-          <div className="relative rounded-3xl overflow-hidden bg-white p-6 md:p-10 flex flex-col md:flex-row items-center gap-8 text-gray-900">
-            <div className="absolute -top-20 -left-20 w-64 h-64 bg-gradient-to-tr from-[#06b6d4] to-[#7c3aed] opacity-8 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-gradient-to-tr from-[#7c3aed] to-[#06b6d4] opacity-8 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="relative rounded-3xl overflow-visible bg-white p-6 md:p-10 flex flex-col md:flex-row items-center gap-8 text-gray-900 antialiased">
+            {/* decorative backgrounds (behind content) */}
+            <div className="absolute -top-20 -left-20 w-64 h-64 bg-gradient-to-tr from-[#06b6d4] to-[#7c3aed] opacity-20 rounded-full blur-3xl pointer-events-none z-0"></div>
+            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-gradient-to-tr from-[#7c3aed] to-[#06b6d4] opacity-20 rounded-full blur-3xl pointer-events-none z-0"></div>
 
-            <div className="w-full md:w-1/2 order-2 md:order-1 text-center md:text-left z-10">
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-3">
+            {/* left column: text */}
+            <div className="w-full md:w-1/2 order-2 md:order-1 text-left z-10 ">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-snug tracking-tight mb-3">
                 <span className="block text-black">Welcome to</span>
+
+                {/* gradient headline: keep as inline-block so descenders render correctly */}
                 <span
-                  className="block mt-1 text-3xl sm:text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent"
+                  className="mt-1 text-3xl sm:text-4xl md:text-5xl font-extrabold bg-clip-text text-transparent inline-block"
                   style={{
-                    backgroundImage: "linear-gradient(90deg, #0C1838 0%, #1E2A78 50%, #2B0B3A 100%)",
+                    backgroundImage:
+                      "linear-gradient(90deg, #0C1838 0%, #1E2A78 50%, #2B0B3A 100%)",
                   }}
                 >
                   India's Largest Internship Programme
                 </span>
               </h1>
 
-              <p className="text-sm sm:text-base md:text-lg font-medium text-black/80 mb-3">
-                <span className="font-semibold text-black">Pacelab ~</span> Redefining Technology
+              <p className="text-sm sm:text-base md:text-lg font-medium text-black/80 mb-3 mt-3">
+                <span className="font-semibold text-black">Pacelab ~</span>{" "}
+                Redefining Technology
               </p>
 
-              <p className="text-sm sm:text-base text-gray-800 max-w-xl leading-relaxed">
-                This internship programme delivers an <span className="font-semibold text-black">industry-aligned journey</span> that equips students with real-world skills, assessments and mentorship. Participants get an <span className="font-semibold">Internship Certificate</span>, live industry talks and access to Career Support &amp; Job Portal.
+              <p className="text-sm sm:text-base text-gray-800 max-w-xl leading-relaxed mb-2">
+                This internship programme delivers an{" "}
+                <span className="font-semibold text-black">
+                  industry-aligned journey
+                </span>{" "}
+                that equips students with real-world skills, assessments and
+                mentorship. Participants get an{" "}
+                <span className="font-semibold">Internship Certificate</span>,
+                live industry talks and access to Career Support &amp; Job
+                Portal.
               </p>
 
-              <div className="mt-6 grid grid-cols-2 sm:grid-cols-2 gap-3 max-w-md">
+              {/* features: left aligned, equal-width chips */}
+              <div className="mt-6 grid grid-cols-2 gap-3 max-w-md">
                 {[
                   "Internship Certificate",
                   "Test & Evaluation",
                   "Industry Weekend Talks",
-                  "Career Support & Job Portal",
-                  "Mentorship & Motivation",
-                  "Guaranteed Quality & Support",
+                  "Career Support ",
+                  "Right guidance",
+                  "Guaranteed Quality",
                 ].map((f, i) => (
-                  <span key={i} className="inline-flex items-center justify-center px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 text-sm font-medium text-gray-800">
-                    {f}
-                  </span>
+                  <div key={i} className="w-full">
+                    <button
+                      type="button"
+                      className="flex w-full items-center px-4 py-3 rounded-lg bg-gray-50 border border-gray-200 text-sm sm:text-base font-medium text-gray-800 justify-start"
+                    >
+                      {f}
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
 
+            {/* right column: poster */}
             <div className="w-full md:w-1/2 flex justify-center order-1 md:order-2 z-10">
               <div className="relative w-[260px] h-[340px] sm:w-[300px] sm:h-[380px] md:w-[360px] md:h-[460px] rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
-                <Image src="/pacelab.poster.jpg" alt="Programme poster" width={720} height={920} className="object-cover w-full h-full" priority />
+                <Image
+                  src="/pacelab.poster.jpg"
+                  alt="Programme poster"
+                  width={720}
+                  height={920}
+                  className="object-cover w-full h-full"
+                  priority
+                />
                 <div className="absolute -bottom-4 -right-4 w-12 h-12 rounded-full opacity-20 blur-md bg-gradient-to-br from-[#06b6d4] to-[#7c3aed]"></div>
               </div>
             </div>
@@ -217,6 +245,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
