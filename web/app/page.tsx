@@ -13,9 +13,9 @@ export default function HomePage() {
   useEffect(() => {
     if (loading) return;
 
-    // not logged in → login
+    // not logged in → Website → login
     if (!user) {
-      router.replace('/login');
+      router.replace('/dashboard');
       return;
     }
 
