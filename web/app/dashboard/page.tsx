@@ -162,7 +162,7 @@ export default function DashboardPage() {
             <div className="rounded-2xl border border-dashed p-10 text-center text-gray-600">
               <p className="text-base">You haven’t enrolled in any courses yet.</p>
               <div className="mt-5">
-                <Link href="/catalog">
+                <Link href="/login">
                   <Button className="rounded-lg bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white px-6 py-2 shadow hover:shadow-md transition">Browse Courses</Button>
                 </Link>
               </div>
@@ -217,6 +217,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
