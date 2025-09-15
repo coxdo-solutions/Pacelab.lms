@@ -6,9 +6,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useAuth } from '@/lib/auth-context';
 
 interface BulkUserUploadDialogProps {
   open: boolean;
@@ -18,6 +18,7 @@ interface BulkUserUploadDialogProps {
 
 export function BulkUserUploadDialog({ open, onOpenChange, onSuccess }: BulkUserUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
+  const { user } = useAuth(); // <-- get user and token
 
   const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -29,7 +30,11 @@ export function BulkUserUploadDialog({ open, onOpenChange, onSuccess }: BulkUser
 
       const res = await fetch(`${API}/users/bulk-upload`, {
         method: 'POST',
+        headers: user?.token
+          ? { Authorization: `Bearer ${user.token}` }
+          : undefined,
         body: formData,
+        credentials: 'include',
       });
 
       if (!res.ok) {
@@ -70,12 +75,23 @@ export function BulkUserUploadDialog({ open, onOpenChange, onSuccess }: BulkUser
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Input
+            <input
+              id="bulk-upload-file"
               type="file"
               accept=".csv"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               required
+              className="hidden"
             />
+            <label htmlFor="bulk-upload-file">
+              <Button
+                type="button"
+                className="w-full bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white rounded-xl shadow-lg"
+                asChild
+              >
+                <span>{file ? 'Change File' : 'Choose File'}</span>
+              </Button>
+            </label>
             {file && (
               <div className="text-xs text-muted-foreground">
                 Selected: {file.name}
