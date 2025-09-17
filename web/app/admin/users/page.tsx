@@ -35,6 +35,7 @@ import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { CreateUserDialog } from '@/components/admin/create-user-dialog';
 import { BulkUserUploadDialog } from '@/components/admin/bulk-user-upload-dialog';
+import { EditUserDialog } from '@/components/admin/edit-user-dialog';
 import { useAuth } from '@/lib/auth-context';
 
 type RoleT = 'ADMIN' | 'INSTRUCTOR' | 'STUDENT';
@@ -58,6 +59,8 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showBulkDialog, setShowBulkDialog] = useState(false);
+  const [editUser, setEditUser] = useState<UserRow | null>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const queryClient = useQueryClient();
 
   const authHeaders = user?.token ? { Authorization: `Bearer ${user.token}` } : undefined;
@@ -199,22 +202,22 @@ export default function AdminUsersPage() {
               <h1 className="text-3xl font-bold text-[#0C1838]">User Management</h1>
               <p className="text-gray-500 mt-1">Manage all users in the system</p>
             </div>
-            <div className="flex gap-2">
-              <Button
-                onClick={() => setShowCreateDialog(true)}
-                disabled={!user?.token}
-                className="rounded-xl bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white shadow-lg hover:scale-105 transition-transform flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Add User
-              </Button>
-              <Button
-                onClick={() => setShowBulkDialog(true)}
-                disabled={!user?.token}
-                variant="outline"
-                className="rounded-xl flex items-center gap-2 border-[#1E3A8A] text-[#1E3A8A]"
-              >
-                <Users className="w-4 h-4" /> Bulk Upload
-              </Button>
+           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button
+              onClick={() => setShowCreateDialog(true)}
+              disabled={!user?.token}
+              className="rounded-xl bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white shadow-lg hover:scale-105 transition-transform flex items-center gap-2 w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4" /> Add User
+            </Button>
+            <Button
+              onClick={() => setShowBulkDialog(true)}
+              disabled={!user?.token}
+              variant="outline"
+              className="rounded-xl flex items-center gap-2 border-[#1E3A8A] text-[#1E3A8A] w-full sm:w-auto"
+            >
+              <Users className="w-4 h-4" /> Bulk Upload
+            </Button>
             </div>
           </div>
 
@@ -349,7 +352,13 @@ export default function AdminUsersPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="rounded-xl shadow-lg border border-gray-100">
-                                <DropdownMenuItem disabled>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setEditUser(u);
+                                    setShowEditDialog(true);
+                                  }}
+                                  disabled={actionsDisabled}
+                                >
                                   <Edit className="w-4 h-4 mr-2" /> Edit User
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
@@ -394,6 +403,15 @@ export default function AdminUsersPage() {
       <BulkUserUploadDialog
         open={showBulkDialog}
         onOpenChange={setShowBulkDialog}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-users'] })}
+      />
+      <EditUserDialog
+        open={showEditDialog}
+        onOpenChange={setShowEditDialog}
+        user={editUser ? {
+          ...editUser,
+          name: editUser.name || '',
+        } : null}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-users'] })}
       />
     </div>
