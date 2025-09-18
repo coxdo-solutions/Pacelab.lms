@@ -171,7 +171,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
           ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
         },
         credentials: 'include',
-        body: JSON.stringify({ lessonId, progress: true }),
+        body: JSON.stringify({ lessonId, completed: true}),
       })
       const text = await res.text().catch(() => '')
       if (!res.ok) throw new Error(text || 'Failed to mark lesson complete')
