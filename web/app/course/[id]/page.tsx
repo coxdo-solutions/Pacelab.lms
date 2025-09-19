@@ -171,7 +171,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
           ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
         },
         credentials: 'include',
-        body: JSON.stringify({ lessonId, completed: true }),
+        body: JSON.stringify({ lessonId, completed: true}),
       })
       const text = await res.text().catch(() => '')
       if (!res.ok) throw new Error(text || 'Failed to mark lesson complete')
@@ -256,7 +256,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
     }
   }
 
-  
+
 
   // Complete course: mark all incomplete lessons as completed (batch)
   async function handleCompleteCourse() {
@@ -665,7 +665,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
                 {/* Example fallback if you didn't keep the component in same file: simple textarea + Send button */}
                 <p className="text-sm text-gray-500">Ask instructors via WhatsApp.</p>
                 {/* If you included WhatsAppQaBody: */}
-           <WhatsAppQaBody courseTitle={course?.title} lessonTitle={selectedLesson?.title} userName={user?.name ?? user?.email ?? null} phone="+917306803881" onClose={() => setShowChat(false)} /> 
+           <WhatsAppQaBody courseTitle={course?.title} lessonTitle={selectedLesson?.title} userName={user?.name ?? user?.email ?? null} phone="+917306803881" onClose={() => setShowChat(false)} />
               </div>
             </motion.aside>
           )}
