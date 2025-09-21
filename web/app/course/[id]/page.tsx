@@ -21,7 +21,7 @@ interface Lesson {
   content: string
   duration: number
   order: number
-  completed: boolean
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' // Changed from completed: boolean
   youtubeId?: string
   videoId?: string
   videoUrl?: string
@@ -160,6 +160,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
     retry: 0,
   })
 
+  // Update the markCompletedMutation to send status: "COMPLETED"
   const markCompletedMutation = useMutation({
     mutationFn: async (lessonId: string) => {
       const API = getApiBase()
@@ -171,27 +172,70 @@ export default function CoursePage({ params }: { params: { id: string } }) {
           ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
         },
         credentials: 'include',
-        body: JSON.stringify({ lessonId, completed: true}),
+        // Send status: "COMPLETED" to your backend
+        body: JSON.stringify({ lessonId, status: "COMPLETED" }),
       })
       const text = await res.text().catch(() => '')
       if (!res.ok) throw new Error(text || 'Failed to mark lesson complete')
       return text ? JSON.parse(text) : {}
     },
     onSuccess: () => {
-      // refresh course to get accurate progress state
       queryClient.invalidateQueries({ queryKey: ['course', params.id] })
     },
   })
 
+  // Update the markInProgressMutation to send status: "IN_PROGRESS"
+  const markInProgressMutation = useMutation({
+    mutationFn: async (lessonId: string) => {
+      const API = getApiBase()
+      const url = `${API}/lessons/progress`
+      const payload = { lessonId, status: "IN_PROGRESS" }
+
+      console.log('Sending IN_PROGRESS request to:', url)
+      console.log('Payload:', payload)
+      console.log('Headers:', {
+        'Content-Type': 'application/json',
+        ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+      })
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(user?.token ? { Authorization: `Bearer ${user.token}` } : {}),
+        },
+        credentials: 'include',
+        // Send status: "IN_PROGRESS" to your backend
+        body: JSON.stringify(payload),
+      })
+
+      const text = await res.text().catch(() => '')
+      console.log('Response status:', res.status)
+      console.log('Response text:', text)
+
+      if (!res.ok) throw new Error(text || 'Failed to mark lesson in progress')
+      return text ? JSON.parse(text) : {}
+    },
+    onSuccess: () => {
+      console.log('IN_PROGRESS mutation successful')
+      queryClient.invalidateQueries({ queryKey: ['course', params.id] })
+    },
+    onError: (error) => {
+      console.error('IN_PROGRESS mutation failed:', error)
+    }
+  })
+
   const totalLessons = course?.modules.reduce((acc, m) => acc + (m.lessons?.length ?? 0), 0) ?? 0
-  const completedLessons = course?.modules.reduce((acc, m) => acc + m.lessons.filter((l) => l.completed).length, 0) ?? 0
+  const completedLessons = course?.modules.reduce((acc, m) => acc + m.lessons.filter((l) => l.status === 'COMPLETED').length, 0) ?? 0
   const progress = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0
 
   useEffect(() => {
     if (course && !selectedLesson) {
       const allLessons = course.modules.flatMap((m) => m.lessons)
-      const firstIncomplete = allLessons.find((l) => !l.completed)
-      setSelectedLesson(firstIncomplete || allLessons[0] || null)
+      const firstIncomplete = allLessons.find((l) => l.status !== 'COMPLETED')
+      const lessonToSelect = firstIncomplete || allLessons[0] || null
+      setSelectedLesson(lessonToSelect)
+      // Just select lesson, let backend determine status
     }
   }, [course, selectedLesson])
 
@@ -204,49 +248,44 @@ export default function CoursePage({ params }: { params: { id: string } }) {
   }
 
   // Optimistically mark the selected lesson complete in local state for instant UI feedback
-  function markSelectedLessonOptimistic() {
-    setSelectedLesson((s) => (s ? { ...s, completed: true } : s))
+  function markSelectedLessonOptimistic(status: 'COMPLETED' | 'IN_PROGRESS') {
+    setSelectedLesson((s) => (s ? { ...s, status } : s))
   }
 
-  // Next button: mark current as complete (if not already), then go to next
+  // FIXED: Next button - just move to next lesson, let backend determine status
   async function handleNext() {
     if (!selectedLesson || !course) return
     const next = findNextLesson(selectedLesson.id)
     if (!next) return
+
+    console.log('Next button clicked, current lesson:', selectedLesson.id, 'next lesson:', next.id, 'next status:', next.status)
+
     setProcessingNext(true)
     try {
-      if (!selectedLesson.completed) {
-        // optimistic UI
-        markSelectedLessonOptimistic()
-        // call API
-        await markCompletedMutation.mutateAsync(selectedLesson.id)
-      }
-      // move to next lesson
+      // Just move to next lesson
       setSelectedLesson(next)
-      // refresh data to reflect backend state
+
+      // Refresh data to get current status from backend
       await queryClient.invalidateQueries({ queryKey: ['course', params.id] })
     } catch (err) {
-      console.error('Failed to mark lesson complete before next:', err)
-      // revert optimistic selectedLesson? We simply refetch to sync
+      console.error('Failed to handle next:', err)
       await queryClient.invalidateQueries({ queryKey: ['course', params.id] })
     } finally {
       setProcessingNext(false)
     }
   }
 
-  // Mark current lesson completed (used by direct Mark Complete, or "mark complete and go next")
-  async function handleMarkComplete(goNext = false) {
+  // FIXED: Mark current lesson completed only
+  async function handleMarkComplete() {
     if (!selectedLesson) return
     setProcessingNext(true)
     try {
-      if (!selectedLesson.completed) {
-        markSelectedLessonOptimistic()
+      // Always mark current lesson as COMPLETED when "Complete" button is clicked
+      if (selectedLesson.status !== 'COMPLETED') {
+        markSelectedLessonOptimistic('COMPLETED')
         await markCompletedMutation.mutateAsync(selectedLesson.id)
       }
-      if (goNext) {
-        const next = findNextLesson(selectedLesson.id)
-        if (next) setSelectedLesson(next)
-      }
+
       await queryClient.invalidateQueries({ queryKey: ['course', params.id] })
     } catch (err) {
       console.error('Failed to mark lesson complete:', err)
@@ -256,15 +295,13 @@ export default function CoursePage({ params }: { params: { id: string } }) {
     }
   }
 
-
-
   // Complete course: mark all incomplete lessons as completed (batch)
   async function handleCompleteCourse() {
     if (!course) return
     setProcessingComplete(true)
     try {
       const allLessons = course.modules.flatMap((m) => m.lessons)
-      const incomplete = allLessons.filter((l) => !l.completed)
+      const incomplete = allLessons.filter((l) => l.status !== 'COMPLETED')
       if (incomplete.length === 0) {
         // already complete; still ensure UI sync
         await queryClient.invalidateQueries({ queryKey: ['course', params.id] })
@@ -273,7 +310,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
       }
 
       // optimistic local: mark selectedLesson completed and optionally others if visible
-      setSelectedLesson((s) => (s ? { ...s, completed: true } : s))
+      setSelectedLesson((s) => (s ? { ...s, status: 'COMPLETED' } : s))
 
       // run mutations in parallel but handle failures individually
       const promises = incomplete.map((l) =>
@@ -343,102 +380,101 @@ export default function CoursePage({ params }: { params: { id: string } }) {
   }
 
   function WhatsAppQaBody({
-  courseTitle,
-  lessonTitle,
-  userName,
-  phone = "+917306803881", // our WhatsApp number in full international format
-  onClose,
-}: {
-  courseTitle?: string | null;
-  lessonTitle?: string | null;
-  userName?: string | null;
-  phone?: string;
-  onClose?: () => void;
-}) {
-  const [text, setText] = useState("");
+    courseTitle,
+    lessonTitle,
+    userName,
+    phone = "+917306803881", // our WhatsApp number in full international format
+    onClose,
+  }: {
+    courseTitle?: string | null;
+    lessonTitle?: string | null;
+    userName?: string | null;
+    phone?: string;
+    onClose?: () => void;
+  }) {
+    const [text, setText] = useState("");
 
-  // Build the default message template
-  function buildMessageBody(customText: string) {
-    const headerParts = [
-      courseTitle ? `Course: ${courseTitle}` : null,
-      lessonTitle ? `Lesson: ${lessonTitle}` : null,
-      userName ? `From: ${userName}` : null,
-    ].filter(Boolean);
+    // Build the default message template
+    function buildMessageBody(customText: string) {
+      const headerParts = [
+        courseTitle ? `Course: ${courseTitle}` : null,
+        lessonTitle ? `Lesson: ${lessonTitle}` : null,
+        userName ? `From: ${userName}` : null,
+      ].filter(Boolean);
 
-    const header = headerParts.length ? headerParts.join(" | ") + "\n\n" : "";
-    const body = customText.trim() ? customText.trim() : "<Type your question here>";
-    return `${header}${body}\n\n-- Sent via LMS Q&A`;
-  }
-
-  // Try to open WhatsApp. Use whatsapp:// on mobile if available, otherwise wa.me web link.
-  function openWhatsApp(number: string, message: string) {
-    const encoded = encodeURIComponent(message);
-    // prefer whatsapp:// protocol on mobile if supported
-    const whatsappAppUrl = `whatsapp://send?phone=${number.replace(/[^\d+]/g, "")}&text=${encoded}`;
-    const waMeUrl = `https://wa.me/${number.replace(/[^\d+]/g, "")}?text=${encoded}`;
-
-    // attempt to open the whatsapp:// link first (mobile deep link), fallback to wa.me
-    // Opening in new tab/window to avoid navigating away from app
-    const newWindow = window.open(whatsappAppUrl, "_blank");
-    // If popup blocked or protocol not supported, fallback to wa.me after short delay
-    setTimeout(() => {
-      // some browsers return null for blocked popup attempts; just open wa.me in that case
-      if (!newWindow || newWindow.closed) {
-        window.open(waMeUrl, "_blank");
-      }
-    }, 600);
-  }
-
-  async function handleSend() {
-    if (!text.trim()) {
-      // optional: show a toast or simple alert
-      alert("Please type your question before sending.");
-      return;
+      const header = headerParts.length ? headerParts.join(" | ") + "\n\n" : "";
+      const body = customText.trim() ? customText.trim() : "<Type your question here>";
+      return `${header}${body}\n\n-- Sent via LMS Q&A`;
     }
-    const msg = buildMessageBody(text);
-    openWhatsApp(phone, msg);
-    // optionally clear text and close the slide-over
-    setText("");
-    onClose?.();
-  }
 
-  return (
-    <div className="p-4">
-      <p className="text-sm text-gray-500">
-        Ask questions about this lesson — messages go only to instructors via
-        WhatsApp.
-      </p>
+    // Try to open WhatsApp. Use whatsapp:// on mobile if available, otherwise wa.me web link.
+    function openWhatsApp(number: string, message: string) {
+      const encoded = encodeURIComponent(message);
+      // prefer whatsapp:// protocol on mobile if supported
+      const whatsappAppUrl = `whatsapp://send?phone=${number.replace(/[^\d+]/g, "")}&text=${encoded}`;
+      const waMeUrl = `https://wa.me/${number.replace(/[^\d+]/g, "")}?text=${encoded}`;
 
-      <div className="mt-4">
-        <textarea
-          className="w-full rounded-md border p-2 h-32 resize-none"
-          placeholder="Type your question..."
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <div className="text-xs text-gray-400">
-            Tip: include lesson timestamps or screenshots (if needed).
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              className="px-3 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200"
-              onClick={() => {
-                setText("");
-              }}
-            >
-              Clear
-            </button>
-            <Button size="sm" onClick={handleSend}>
-              Send via WhatsApp
-            </Button>
+      // attempt to open the whatsapp:// link first (mobile deep link), fallback to wa.me
+      // Opening in new tab/window to avoid navigating away from app
+      const newWindow = window.open(whatsappAppUrl, "_blank");
+      // If popup blocked or protocol not supported, fallback to wa.me after short delay
+      setTimeout(() => {
+        // some browsers return null for blocked popup attempts; just open wa.me in that case
+        if (!newWindow || newWindow.closed) {
+          window.open(waMeUrl, "_blank");
+        }
+      }, 600);
+    }
+
+    async function handleSend() {
+      if (!text.trim()) {
+        // optional: show a toast or simple alert
+        alert("Please type your question before sending.");
+        return;
+      }
+      const msg = buildMessageBody(text);
+      openWhatsApp(phone, msg);
+      // optionally clear text and close the slide-over
+      setText("");
+      onClose?.();
+    }
+
+    return (
+      <div className="p-4">
+        <p className="text-sm text-gray-500">
+          Ask questions about this lesson — messages go only to instructors via
+          WhatsApp.
+        </p>
+
+        <div className="mt-4">
+          <textarea
+            className="w-full rounded-md border p-2 h-32 resize-none"
+            placeholder="Type your question..."
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+          />
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <div className="text-xs text-gray-400">
+              Tip: include lesson timestamps or screenshots (if needed).
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="px-3 py-2 text-sm rounded-md bg-gray-100 hover:bg-gray-200"
+                onClick={() => {
+                  setText("");
+                }}
+              >
+                Clear
+              </button>
+              <Button size="sm" onClick={handleSend}>
+                Send via WhatsApp
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
+    );
+  }
 
   const selectedYouTubeId = pickYouTubeId(selectedLesson || undefined)
   const nextLesson = selectedLesson ? findNextLesson(selectedLesson.id) : null
@@ -493,6 +529,20 @@ export default function CoursePage({ params }: { params: { id: string } }) {
           </div>
         </motion.div>
 
+        {/* Progress Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full"
+        >
+          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+            <span>Course Progress</span>
+            <span>{Math.round(progress)}% Complete</span>
+          </div>
+          <Progress value={progress} className="w-full h-2" />
+        </motion.div>
+
         {/* Main Content */}
         <div className="grid lg:grid-cols-4 gap-8 items-start">
           <div className="lg:col-span-3 space-y-6">
@@ -514,7 +564,8 @@ export default function CoursePage({ params }: { params: { id: string } }) {
                           youtubeVideoId={selectedYouTubeId}
                           lessonId={selectedLesson.id}
                           onProgress={({ completed }) => {
-                            if (completed && !selectedLesson.completed) {
+                            // Only auto-complete when video is fully watched
+                            if (completed && selectedLesson.status !== 'COMPLETED') {
                               markCompletedMutation.mutate(selectedLesson.id)
                             }
                           }}
@@ -533,10 +584,14 @@ export default function CoursePage({ params }: { params: { id: string } }) {
                           <div className="flex items-center gap-4 text-gray-500 text-sm">
                             <Clock className="w-4 h-4" />
                             <span>{Math.max(1, Math.floor((selectedLesson.duration || 0) / 60))} min</span>
-                            <Badge variant={selectedLesson.completed ? 'default' : 'secondary'} className={cn('px-2 py-1 rounded-full', selectedLesson.completed ? 'bg-green-100' : '')}>
-                              {selectedLesson.completed ? (
+                            <Badge variant={selectedLesson.status === 'COMPLETED' ? 'default' : 'secondary'} className={cn('px-2 py-1 rounded-full', selectedLesson.status === 'COMPLETED' ? 'bg-green-100' : '')}>
+                              {selectedLesson.status === 'COMPLETED' ? (
                                 <span className="flex items-center gap-2 text-green-700"><CheckCircle className="w-4 h-4" /> Completed</span>
-                              ) : ('In Progress')}
+                              ) : selectedLesson.status === 'IN_PROGRESS' ? (
+                                <span className="flex items-center gap-2 text-blue-700"><PlayCircle className="w-4 h-4" /> In Progress</span>
+                              ) : (
+                                'Not Started'
+                              )}
                             </Badge>
                           </div>
                         </div>
@@ -570,19 +625,11 @@ export default function CoursePage({ params }: { params: { id: string } }) {
 
                           <Button
                             size="lg"
-                            onClick={() => {
-                              // if last lesson -> complete course (batch); otherwise mark this lesson complete and optionally go next
-                              if (isLastLesson) {
-                                handleCompleteCourse()
-                              } else {
-                                // mark current complete and go to next lesson
-                                handleMarkComplete(true)
-                              }
-                            }}
+                            onClick={handleMarkComplete}
                             disabled={processingComplete || processingNext}
-                            className={cn('rounded-full px-6 py-2 text-white shadow-md hover:brightness-105', isLastLesson ? 'bg-gradient-to-r from-green-400 to-emerald-500' : 'bg-gradient-to-r from-indigo-600 to-indigo-500')}
+                            className="rounded-full px-6 py-2 text-white shadow-md hover:brightness-105 bg-gradient-to-r from-indigo-600 to-indigo-500"
                           >
-                            {processingComplete ? 'Completing…' : (isLastLesson ? 'Complete Course' : 'Mark Complete')}
+                            {processingComplete ? 'Completing…' : 'Mark Complete'}
                           </Button>
                         </div>
                       </div>
@@ -593,7 +640,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
             </AnimatePresence>
           </div>
 
-          {/* outline */}
+          {/* Course outline sidebar */}
           <div className="lg:col-span-1">
             <div className="sticky top-28">
               <Card className="rounded-2xl shadow-lg border-0 hover:shadow-xl transition-shadow">
@@ -610,7 +657,10 @@ export default function CoursePage({ params }: { params: { id: string } }) {
                         {module.lessons.map((lesson) => (
                           <button
                             key={lesson.id}
-                            onClick={() => setSelectedLesson(lesson)}
+                            onClick={() => {
+                              setSelectedLesson(lesson)
+                              // Just select lesson, let backend determine status
+                            }}
                             className={cn(
                               'w-full p-4 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors',
                               selectedLesson?.id === lesson.id &&
@@ -618,10 +668,12 @@ export default function CoursePage({ params }: { params: { id: string } }) {
                             )}
                           >
                             <div className="flex-shrink-0">
-                              {lesson.completed ? (
+                              {lesson.status === 'COMPLETED' ? (
                                 <CheckCircle className="w-5 h-5 text-green-600" />
-                              ) : (
+                              ) : lesson.status === 'IN_PROGRESS' ? (
                                 <PlayCircle className="w-5 h-5 text-[#0C1838]" />
+                              ) : (
+                                <PlayCircle className="w-5 h-5 text-gray-400" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -645,7 +697,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Q&A Slide-over kept unchanged — you already wired WhatsApp body in your last snippet */}
+        {/* Q&A Slide-over */}
         <AnimatePresence>
           {showChat && (
             <motion.aside
@@ -657,15 +709,19 @@ export default function CoursePage({ params }: { params: { id: string } }) {
             >
               <div className="p-4 border-b flex items-center justify-between">
                 <div className="font-medium">Q&A</div>
-                <button className="text-sm text-gray-500" onClick={() => setShowChat(false)}>Close</button>
+                <button className="text-sm text-gray-500 hover:text-gray-700" onClick={() => setShowChat(false)}>
+                  Close
+                </button>
               </div>
 
-              {/* Use the WhatsAppQaBody you added earlier (make sure it's in scope) */}
-              <div className="p-4">
-                {/* Example fallback if you didn't keep the component in same file: simple textarea + Send button */}
-                <p className="text-sm text-gray-500">Ask instructors via WhatsApp.</p>
-                {/* If you included WhatsAppQaBody: */}
-           <WhatsAppQaBody courseTitle={course?.title} lessonTitle={selectedLesson?.title} userName={user?.name ?? user?.email ?? null} phone="+917306803881" onClose={() => setShowChat(false)} />
+              <div className="max-h-96 overflow-y-auto">
+                <WhatsAppQaBody
+                  courseTitle={course?.title}
+                  lessonTitle={selectedLesson?.title}
+                  userName={user?.name ?? user?.email ?? null}
+                  phone="+917306803881"
+                  onClose={() => setShowChat(false)}
+                />
               </div>
             </motion.aside>
           )}
@@ -674,4 +730,3 @@ export default function CoursePage({ params }: { params: { id: string } }) {
     </div>
   )
 }
-

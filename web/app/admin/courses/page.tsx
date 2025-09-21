@@ -41,6 +41,8 @@ import {
   Trash2,
   Users,
   Play,
+  Download, // Add this import
+  Loader2,   // Add this import
 } from "lucide-react";
 import { motion, animate } from "framer-motion";
 
@@ -169,6 +171,35 @@ export default function AdminCoursesPage() {
       toast.error(e?.message || "Failed to update course status"),
   });
 
+  // Add the Download mutation
+  const downloadReportMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${API}/admin/user-progress-report`, {
+        method: 'GET',
+        headers: { ...(authHeaders || {}) },
+      });
+      await handleAuthError(res);
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || 'Failed to download report');
+      }
+      return res.blob();
+    },
+    onSuccess: (blob) => {
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `student-progress-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success('Report downloaded successfully');
+    },
+    onError: (e: any) => toast.error(e?.message || 'Failed to download report'),
+  });
+
   const actionsDisabled =
     !user?.token || deleteCourse.isPending || toggleCourseStatus.isPending;
 
@@ -227,14 +258,34 @@ export default function AdminCoursesPage() {
                 Create and manage courses with Video content
               </p>
             </div>
-            <Button
-              onClick={() => setShowCreateDialog(true)}
-              disabled={!user?.token}
-              className="rounded-xl bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white shadow-lg hover:scale-105 transition-transform flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Course
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button
+                onClick={() => setShowCreateDialog(true)}
+                disabled={!user?.token}
+                className="rounded-xl bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white shadow-lg hover:scale-105 transition-transform flex items-center gap-2 w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4" />
+                Add Course
+              </Button>
+              <Button
+                onClick={() => downloadReportMutation.mutate()}
+                disabled={!user?.token || downloadReportMutation.isPending}
+                variant="outline"
+                className="rounded-xl flex items-center gap-2 border-green-600 text-green-600 hover:bg-green-50 w-full sm:w-auto"
+              >
+                {downloadReportMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Downloading...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Download Report
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Courses Table */}
@@ -339,14 +390,12 @@ export default function AdminCoursesPage() {
                             <div className="flex items-center gap-3">
                               <img
                                 src={
-                                  course.thumbnail || "/placeholder-course.png"
+                                  course.thumbnail
                                 }
                                 alt={course.title}
                                 className="w-12 h-8 object-cover rounded"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src =
-                                    "/placeholder-course.png";
-                                }}
+
+
                               />
                               <div>
                                 <div className="font-medium text-gray-900">
