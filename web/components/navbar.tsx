@@ -51,7 +51,7 @@ export function Navbar() {
     <header className="sticky top-4 z-50">
       <div className="mx-auto max-w-7xl px-4">
         {/* White navbar with black text */}
-        <div className="bg-gradient-to-r from-[#0C1838] via-[#1E3A8A] to-[#0C1838] border border-gray-200 rounded-2xl shadow p-3 text-black">
+        <div className="bg-gradient-to-r from-[#0C1838] via-[#1E3A8A] to-[#0C1838] border border-gray-200 rounded-2xl shadow p-3 text-white">
           <div className="flex items-center gap-6 px-3 py-1">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 shrink-0">
@@ -76,8 +76,8 @@ export function Navbar() {
                       href={item.href}
                       className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 ${
                         isActive
-                          ? "bg-gradient-to-r from-pink-500 to-indigo-600 text-white shadow"
-                          : "text-black/90 hover:text-black hover:bg-black/5"
+                          ? "bg-white/20 text-white shadow"
+                          : "text-white/90 hover:text-white hover:bg-white/10"
                       }`}
                       aria-current={isActive ? "page" : undefined}
                     >

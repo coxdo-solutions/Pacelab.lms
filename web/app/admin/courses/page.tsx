@@ -270,8 +270,8 @@ export default function AdminCoursesPage() {
               <Button
                 onClick={() => downloadReportMutation.mutate()}
                 disabled={!user?.token || downloadReportMutation.isPending}
-                variant="outline"
-                className="rounded-xl flex items-center gap-2 border-green-600 text-green-600 hover:bg-green-50 w-full sm:w-auto"
+                // Use the same gradient and style as Add Course
+                className="rounded-xl bg-gradient-to-r from-[#0C1838] to-[#1E3A8A] text-white shadow-lg hover:scale-105 transition-transform flex items-center gap-2 w-full sm:w-auto"
               >
                 {downloadReportMutation.isPending ? (
                   <>
@@ -301,7 +301,8 @@ export default function AdminCoursesPage() {
             </CardHeader>
 
             <CardContent>
-              <div className="flex items-center gap-4 mb-6">
+              {/* Add margin-top to the search bar */}
+              <div className="flex items-center gap-4 mb-6 mt-4">
                 <div className="relative flex-1 max-w-sm">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <Input
